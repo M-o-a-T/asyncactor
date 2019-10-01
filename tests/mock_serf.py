@@ -10,9 +10,7 @@ import attr
 import time
 from functools import partial
 
-import asyncserf.client
-from asyncserf.util import ValueEvent
-from asyncserf.stream import SerfEvent
+from asyncactor.abc import Transport
 
 import logging
 
@@ -49,7 +47,7 @@ async def stdtest(n=1, **kw):
         @asynccontextmanager
         async def client(self, i: int = 0, **kv):
             """Get a client for the i'th server."""
-            async with asyncserf.client.serf_client() as c:
+            async with asyncactor.client.serf_client() as c:
                 yield c
 
         def split(self, s):
@@ -75,7 +73,7 @@ async def stdtest(n=1, **kw):
 
             ex.enter_context(
                 mock.patch(
-                    "asyncserf.client.serf_client", new=partial(mock_serf_client, st)
+                    "asyncactor.client.serf_client", new=partial(mock_serf_client, st)
                 )
             )
 
@@ -110,7 +108,7 @@ async def mock_serf_client(master, **cfg):
         pass  # terminating mock_serf_client nursery
 
 
-class MockSerf:
+class MockTransport(AgentTransport):
     def __init__(self, tg, master, **cfg):
         self.cfg = cfg
         self.tg = tg
@@ -120,19 +118,7 @@ class MockSerf:
     def __hash__(self):
         return id(self)
 
-    async def spawn(self, fn, *args, **kw):
-        async def run(evt=None, task_status=trio.TASK_STATUS_IGNORED):
-            with trio.CancelScope() as sc:
-                task_status.started(sc)
-                if evt is not None:
-                    await evt.set(sc)
-                await fn(*args, **kw)
-
-        evt = ValueEvent()
-        await self._tg.spawn(run, evt)
-        return await evt.get()
-
-    def stream(self, typ):
+    def monitor(self, typ):
         if "," in typ:
             raise RuntimeError("not supported")
         if not typ.startswith("user:"):
@@ -141,7 +127,7 @@ class MockSerf:
         s = MockSerfStream(self, typ)
         return s
 
-    async def event(self, typ, payload, coalesce=True):
+    async def send(self, typ, payload, coalesce=True):
         # logger.debug("SERF>%s> %r", typ, payload)
 
         assert not coalesce

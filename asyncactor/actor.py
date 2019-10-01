@@ -8,7 +8,6 @@ from functools import partial
 
 from .client import Serf
 from .exceptions import SerfTimeoutError, SerfCollisionError
-from asyncserf.util import ValueEvent
 
 
 class NodeEvent:
@@ -307,7 +306,7 @@ class Actor:
         self._name = name
         self._tg = tg
         self.logger = logging.getLogger(
-            "asyncserf.actor.%s.%s" % (self._prefix, self._name)
+            "asyncactor.%s.%s" % (self._prefix, self._name)
         )
 
         if packer is None:
@@ -409,29 +408,6 @@ class Actor:
             return self._history.index(node)
         except IndexError:
             return -1
-
-    async def spawn(self, proc, *args, **kw):
-        """
-        Run a task within this object's task group.
-
-        Returns:
-          a cancel scope you can use to stop the task.
-        """
-
-        async def _run(proc, args, kw, res):
-            """
-            Helper for starting a task.
-
-            This accepts a :class:`ValueEvent`, to pass the task's cancel scope
-            back to the caller.
-            """
-            async with anyio.open_cancel_scope() as scope:
-                await res.set(scope)
-                await proc(*args, **kw)
-
-        res = ValueEvent()
-        await self._tg.spawn(_run, proc, args, kw, res)
-        return await res.get()
 
     async def _ping(self):
         """

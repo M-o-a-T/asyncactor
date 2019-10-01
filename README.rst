@@ -1,36 +1,68 @@
-asyncserf
-=========
+asyncactor
+==========
 
-asyncserf is an async Python interface to Serf, the decentralised solution
-for service discovery and orchestration.
+AsyncActor is an async Python module that aids in service discovery and
+"somewhat-leader" election in a heterogenous, sometimes-disconnected
+network.
+
+AsyncActor can run on top of any reliable broadcast channel.
+This version includes back-ends for Serf and MQTT.
+
+AsyncActor sends as few packets as possible, thus is well-suited for
+IoT-related applications with many stations but limited bandwidth.
+
+Theory of operation
++++++++++++++++++++
+
+Assume that you have a non-lossy network with a bounded latency (let's
+assume one second). Assume further that you'd like to know within ten
+seconds whether your node is still online.
+
+AsyncActor sends one beacon message every seven to nine seconds. The message
+includes a list of N previous hosts who have transmitted the beacon; the
+host that's last in this list will be the next transmitter.
+
+The time slot starting at the seven-second mark is used for random hosts
+which would like to enter the beacon sending business. This is somewhat
+likely if the list of hosts is currently smaller than N. The slot at eight
+seconds is used for the hosts at the end of the list; the last host will
+send first, but if its beacon is not seen then the next-to-last will send
+its message, and so on.
+
+The time slot at nine seconds is used for last-resort messages, i.e. any
+participating host can and will send its beacon message.
+
+Collisions are resolved at the ten-second mark, i.e. the list of messages
+is ordered deterministically: the winner will announce to its clients that
+a new slot has started and whether all N host slots are filled.
 
 It uses `anyio <https://github.com/agronholm/anyio>` as its underlying
 async framework.
 
-.. image:: https://badge.fury.io/py/asyncserf.svg
+.. image:: https://badge.fury.io/py/asyncactor.svg
     :alt: PyPI latest version badge
-    :target: https://pypi.python.org/pypi/asyncserf
-.. image:: https://coveralls.io/repos/smurfix/asyncserf/badge.png?branch=master
+    :target: https://pypi.python.org/pypi/asyncactor
+.. image:: https://coveralls.io/repos/smurfix/asyncactor/badge.png?branch=master
     :alt: Code coverage badge
-    :target: https://coveralls.io/r/smurfix/asyncserf?branch=master
+    :target: https://coveralls.io/r/smurfix/asyncactor?branch=master
 
 Installation
 ------------
 
-asyncserf requires a running Serf agent. See `Serf's agent documentation
-<http://www.serfdom.io/docs/agent/basics.html>`_ for instructions.
+AsyncActor requires a back-end, i.e. either a running Serf agent or a MQTT
+broker.
 
-To install asyncserf, run the following command:
+To install AsyncActor, run the following command:
 
 .. code-block:: bash
 
-    $ pip install asyncserf
+    $ pip install asyncactor
 
 or alternatively (you really should be using pip though):
 
 .. code-block:: bash
 
-    $ easy_install asyncserf
+    $ easy_install asyncactor
 
 or from source:
 
@@ -47,21 +79,13 @@ These examples require a running async loop.
 
 .. code-block:: python
 
-    from asyncserf import serf_client
+    from asyncactor import client as actor
+    from somewhere import some_transport
 
-    async with serf_client() as client:
-        await client.event('foo', 'bar')
-
-Stream usage:
-
-.. code-block:: python
-
-    from asyncserf import serf_client
-
-    async with serf_client() as client:
-        async with client.stream('*') as stream:
-            async for resp in stream:
-                print(resp)
+    async with some_transport.connect('localhost') as t:
+        async with actor(t, prefix=('actor','test')) as client:
+            async for client.events as m:
+                print(m)
 
 Development
 ------------
@@ -70,6 +94,7 @@ You can run the tests using the following commands:
 
 .. code-block:: bash
 
-    $ serf agent --tag foo=bar & # start serf agent
+    $ serf agent & # start serf agent
+    $ mosquitto 
     $ python3 -mpytest tests
 

@@ -56,8 +56,8 @@ pip install -U pip setuptools wheel
 
 if [ "$CHECK_FORMATTING" = "1" ]; then
     pip install black
-    if ! black --check setup.py asyncserf; then
-        black --diff setup.py asyncserf
+    if ! black --check setup.py asyncactor; then
+        black --diff setup.py asyncactor
         cat <<EOF
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -65,7 +65,7 @@ if [ "$CHECK_FORMATTING" = "1" ]; then
 Formatting problems were found (listed above). To fix them, run
 
    pip install black
-   black --diff setup.py asyncserf
+   black --diff setup.py asyncactor
 
 in your local checkout.
 
@@ -99,7 +99,7 @@ else
     mkdir empty
     cd empty
 
-    pytest -W error -ra -v --cov=asyncserf --cov-config=../.coveragerc --verbose ../tests
+    pytest -W error -ra -v --cov=asyncactor --cov-config=../.coveragerc --verbose ../tests
 
     bash <(curl -s https://codecov.io/bash)
 fi

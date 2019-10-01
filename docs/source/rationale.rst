@@ -1,11 +1,11 @@
-+++++++++++
- Rationale
-+++++++++++
++++++++++
+Rationale
++++++++++
 
-`Serf <http://serf.io/>` is a very good implementation of a truly
-distributed gossip protocol. Python is a nice programming language
-which supports coroutines. It recently acquired support for `Structured Concurrency
-<https://vorpus.org/blog/notes-on-structured-concurrency-or-go-statement-considered-harmful/>`.
+Distributed systems frequently need a "source of truth". This source can be
+permanent (one node is selected as the master until it dies), distributed
+(a consensus algorithm decides what the truth is), or ephemeral (the master
+role frequently changes).
 
-This module serves as the interface between coroutines and Serf.
+AsyncActor uses the third way.
 

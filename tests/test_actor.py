@@ -3,7 +3,7 @@ import trio
 import time
 
 from .mock_serf import stdtest
-from asyncserf.actor import (
+from asyncactor.actor import (
     Actor,
     GoodNodeEvent,
     TagEvent,
