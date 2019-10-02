@@ -495,9 +495,9 @@ class Actor:
 
         t_dest = 0
         while True:
-            t_left = t_dest - time.time()
+            t_left = t_dest - time.monotonic()
             if self._tagged == 0:
-                t = max(self._next_ping_time - time.time(), 0)
+                t = max(self._next_ping_time - time.monotonic(), 0)
             elif t_left <= 0:
                 if self._tagged < 0:
                     t = 2 * self._gap
@@ -523,7 +523,7 @@ class Actor:
 
                     else:
                         raise RuntimeError("tagged", self._tagged)
-                t_dest = t + time.time()
+                t_dest = t + time.monotonic()
             else:
                 t = t_left
 
@@ -815,7 +815,7 @@ class Actor:
 
     def _get_next_ping_time(self):
         t = self._time_to_next_ping()
-        self._next_ping_time = time.time() + self._cycle + self._gap * t
+        self._next_ping_time = time.monotonic() + self._cycle + self._gap * t
 
     def _time_to_next_ping(self):
         """Calculates the time until sending the next ping is a good idea,
