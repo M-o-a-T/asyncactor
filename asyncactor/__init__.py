@@ -1,5 +1,2 @@
-from .actor import Actor
-
-__all__ = [
-    "Actor",
-]
+from .actor import *
+from .actor import __all__
