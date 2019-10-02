@@ -36,7 +36,7 @@ class MQTTTransport(Transport):
         Send a message.
         """
         payload = msgpack.packb(payload, use_bin_type=True)
-        await self.conn.publish(self.topic, payload, QOS_0, False))
+        await self.conn.publish(self.topic, payload, QOS_0, False)
 
     def deliver(self, payload):
         """
