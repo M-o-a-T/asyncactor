@@ -59,7 +59,6 @@ class MQTTMonitor(MonitorStream):
             raise RuntimeError("You can't have more than one monitor")
         c._monitor = self
         await c.conn.subscribe([(c.topic, QOS_0)])
-        self._mon2 = await self._mon1.__aenter__()
         return self
 
     async def __aexit__(self, *tb):
