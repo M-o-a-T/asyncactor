@@ -15,6 +15,9 @@ Architecture: all
 Depends: ${misc:Depends}, ${python3:Depends},
   python3-trio,
   python3-anyio,
+Recommends:
+  python3-distmqtt,
+  python3-asyncserf (>> 0.16),
 Description: Python client for the Serf orchestration tool
  AsyncSerf is an async Python interface to Serf, the decentralised solution
  for service discovery and orchestration.
