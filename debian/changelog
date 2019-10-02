@@ -1,3 +1,9 @@
+asyncactor (0.16.0-4) unstable; urgency=medium
+
+  * disable test
+
+ -- Matthias Urlichs <matthias@urlichs.de>  Wed, 02 Oct 2019 19:24:32 +0200
+
 asyncactor (0.16.0-3) unstable; urgency=medium
 
   * duh
