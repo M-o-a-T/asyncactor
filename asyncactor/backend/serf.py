@@ -4,21 +4,23 @@
 #
 from asyncactor.abc import Transport, MonitorStream
 from asyncserf import Serf
+import msgpack
 
 class SerfTransport(Transport):
     def __init__(self, conn: Serf, usertag: str):
         self.conn = conn
-        self.tag = tag
+        self.tag = usertag
 
     def monitor(self):
         return SerfMonitor(self)
 
     async def send(self, payload):
+        payload = msgpack.packb(payload, use_bin_type=True)
         await self.conn.event(name=self.tag, payload=payload, coalesce=False)
 
 class SerfMonitor(MonitorStream):
     async def __aenter__(self):
-        self._mon1 = self.conn.stream("user:"+self.tag)
+        self._mon1 = self.transport.conn.stream("user:"+self.transport.tag)
         self._mon2 = await self._mon1.__aenter__()
         return self
 
@@ -29,7 +31,9 @@ class SerfMonitor(MonitorStream):
         self._it = self._mon2.__aiter__()
         return self
 
-    def __anext__(self):
-        return self._it.__anext__()
+    async def __anext__(self):
+        msg = await self._it.__anext__()
+        msg = msgpack.unpackb(msg.payload, raw=False, use_list=False)
+        return msg
 
 Transport = SerfTransport
