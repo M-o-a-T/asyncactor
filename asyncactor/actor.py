@@ -308,12 +308,12 @@ class Actor:
         self._n_hosts = self._cfg["n_hosts"]
         self._self_seen = False
 
-        if self._cycle < 2:
-            raise ValueError("cycle must be >= 2")
-        if self._gap < 1:
-            raise ValueError("gap must be >= 1")
-        if self._cycle < self._gap:
-            raise ValueError("cycle must be >= gap")
+        if self._cycle < 1:
+            raise ValueError("cycle must be >= 1")
+        if self._gap < 0.:
+            raise ValueError("gap must be >= 0.1")
+        if self._cycle < self._gap*3:
+            raise ValueError("cycle must be >= 3*gap")
 
         self._evt_q = anyio.create_queue(1)
         self._rdr_q = anyio.create_queue(99)
