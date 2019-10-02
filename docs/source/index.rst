@@ -1,25 +1,19 @@
-=========================================================
-AsyncSerf: an async Python front-end for Hashicorp's Serf
-=========================================================
+=================================================
+AsyncActor: selecting nodes on a broadcast medium
+=================================================
 
-AsyncSerf is an asynchronous interface to `Serf <http://serf.io/>`.
+Using AsyncActor, you can select a participant in a broadcast medium that's
+responsible for tasks which only one node should do, discover whether there
+is a network split, and related tasks.
 
 Key features:
 
 * async; uses `AnyIO <https://github.com/agronholm/anyio/>`,
   thus is compatible with ``asyncio``, ``trio`` and ``curio``.
 
-* properly multiplexed; issue multiple commands in parallel
+* timeslot-based, ~1 message per slot
 
-* listen for, and respond to, queries / user events
-
-* transparently encodes/decodes your payloads, if desired
-
-* should support 100% of Serf's RPC command set
-
-* includes adequate tests and example code
-
-* License: MIT
+* Back-ends for Serf and MQTT included, others are easy to code
 
 Inherited from `Trio <https://github.com/python-trio/trio>`_:
 
@@ -35,7 +29,6 @@ Inherited from `Trio <https://github.com/python-trio/trio>`_:
    :maxdepth: 2
 
    rationale.rst
-   usage.rst
    actor.rst
    history.rst
 

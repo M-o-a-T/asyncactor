@@ -71,7 +71,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'asyncserf'
+project = 'asyncactor'
 copyright = '© 2018, Matthias Urlichs'
 author = 'Matthias Urlichs'
 
@@ -80,8 +80,8 @@ author = 'Matthias Urlichs'
 # built documents.
 #
 # The short X.Y version.
-import asyncserf
-version = asyncserf.__version__
+from setuptools_scm import get_version
+version = get_version(version_scheme = "guess-next-dev", local_scheme = "dirty-tag")
 # The full version, including alpha/beta/rc tags.
 release = version
 
@@ -142,7 +142,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'asyncserf-doc'
+htmlhelp_basename = 'asyncactor-doc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -168,14 +168,14 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'asyncserf.tex', 'AsyncSerf Documentation', author, 'manual'),
+    (master_doc, 'asyncactor.tex', 'AsyncActor Documentation', author, 'manual'),
 ]
 
 # -- Options for manual page output ---------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, 'asyncserf', 'AsyncSerf Documentation', [author], 1)]
+man_pages = [(master_doc, 'asyncactor', 'AsyncActor Documentation', [author], 1)]
 
 # -- Options for Texinfo output -------------------------------------------
 
@@ -184,7 +184,7 @@ man_pages = [(master_doc, 'asyncserf', 'AsyncSerf Documentation', [author], 1)]
 #  dir menu entry, description, category)
 texinfo_documents = [
     (
-        master_doc, 'asyncserf', 'AsyncSerf Documentation', author, 'asyncserf',
+        master_doc, 'asyncactor', 'AsyncActor Documentation', author, 'asyncactor',
         'An async RPC interface (using trio) to Serf', 'Miscellaneous'
     ),
 ]

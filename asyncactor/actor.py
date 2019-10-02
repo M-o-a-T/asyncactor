@@ -3,12 +3,11 @@ import time
 from random import Random
 import os
 import logging
-import msgpack
 from functools import partial
+from contextlib import asynccontextmanager
 
-from .client import Serf
-from .exceptions import SerfTimeoutError, SerfCollisionError
-from asyncserf.util import ValueEvent
+from .abc import Transport
+from .exceptions import ActorTimeoutError, ActorCollisionError
 
 
 class NodeEvent:
@@ -240,24 +239,22 @@ class NodeList(list):
 class Actor:
     """
     Some jobs need a single controller so that tasks don't step on each other's
-    toes. Serf does not have a way to elect one.
+    toes.
 
     This class doesn't elect a controller either. It simply provides a
     timeout-based keepalive and round-robin scheme to periodically select a
-    single host in a group.
+    single host in a group, which you may or may not use as a controller
+    for a limited time.
 
-    Actor messages are Serf broadcasts; they consist of:
+    Actor messages are broadcasts; they consist of:
 
     * my name
     * my current value (must be ``None`` if not ready)
     * a history of the names in previous pings (with my name filtered out).
 
     Arguments:
-      client: The Serf client to use
-      prefix (str): The Serf event name to use. Actors with the same prefix
-        form a group and do not affect actors using a different prefix.
+      client: The Transport client to use
       name (str): This node's name. **Must** be unambiguous.
-      tg: a taskgroup. May be ``None`` in which case the client's is used.
       cfg (dict): a dict containing additional configuration values.
 
     The config dict may contain these values.
@@ -291,31 +288,15 @@ class Actor:
 
     def __init__(
         self,
-        client: Serf,
-        prefix: str,
+        client: Transport,
         name: str,
-        tg: anyio.abc.TaskGroup = None,
         cfg: dict = {},
         enabled: bool = True,
-        packer=None,
-        unpacker=None,
     ):
         self._client = client
-        if tg is None:
-            tg = client.tg
-        self._prefix = prefix
         self._name = name
-        self._tg = tg
-        self.logger = logging.getLogger(
-            "asyncserf.actor.%s.%s" % (self._prefix, self._name)
-        )
+        self.logger = logging.getLogger("asyncactor.%s" % (self._name,))
 
-        if packer is None:
-            packer = msgpack.Packer(strict_types=False, use_bin_type=True).pack
-        if unpacker is None:
-            unpacker = partial(msgpack.unpackb, raw=False, use_list=False)
-        self._packer = packer
-        self._unpacker = unpacker
         self._cfg = {}
         self._cfg.update(self.DEFAULTS)
         self._cfg.update(cfg)
@@ -327,12 +308,12 @@ class Actor:
         self._n_hosts = self._cfg["n_hosts"]
         self._self_seen = False
 
-        if self._cycle < 2:
-            raise ValueError("cycle must be >= 2")
-        if self._gap < 1:
-            raise ValueError("gap must be >= 1")
-        if self._cycle < self._gap:
-            raise ValueError("cycle must be >= gap")
+        if self._cycle < 1:
+            raise ValueError("cycle must be >= 1")
+        if self._gap < 0.:
+            raise ValueError("gap must be >= 0.1")
+        if self._cycle < self._gap*3:
+            raise ValueError("cycle must be >= 3*gap")
 
         self._evt_q = anyio.create_queue(1)
         self._rdr_q = anyio.create_queue(99)
@@ -410,29 +391,6 @@ class Actor:
         except IndexError:
             return -1
 
-    async def spawn(self, proc, *args, **kw):
-        """
-        Run a task within this object's task group.
-
-        Returns:
-          a cancel scope you can use to stop the task.
-        """
-
-        async def _run(proc, args, kw, res):
-            """
-            Helper for starting a task.
-
-            This accepts a :class:`ValueEvent`, to pass the task's cancel scope
-            back to the caller.
-            """
-            async with anyio.open_cancel_scope() as scope:
-                await res.set(scope)
-                await proc(*args, **kw)
-
-        res = ValueEvent()
-        await self._tg.spawn(_run, proc, args, kw, res)
-        return await res.get()
-
     async def _ping(self):
         """
         This subtask generates :cls:`PingEvent` messages. It ensures that
@@ -447,27 +405,28 @@ class Actor:
                 self._valid_pings += 1
                 await self.post_event(PingEvent(msg))
 
-    async def __aenter__(self):
-        if self._worker is not None or self._reader is not None:
-            raise RuntimeError("You can't enter me twice")
-        evt = anyio.create_event()
-        self._reader = await self.spawn(self.read_task, self._prefix, evt)
-        await evt.wait()
-        self._worker = await self.spawn(self._run)
-        self._pinger = await self.spawn(self._ping)
-        return self
+    def __aenter__(self):
+        @asynccontextmanager
+        async def work(self):
+            if self._worker is not None or self._reader is not None:
+                raise RuntimeError("You can't enter me twice")
+            async with anyio.create_task_group() as tg:
+                try:
+                    evt = anyio.create_event()
+                    self._tg = tg
+                    self._reader = await tg.spawn(self.read_task, evt)
+                    await evt.wait()
+                    self._worker = await tg.spawn(self._run)
+                    self._pinger = await tg.spawn(self._ping)
+                    yield self
+                finally:
+                    self._tg = None
+                    await tg.cancel_scope.cancel()
+        self._ae = work(self)
+        return self._ae.__aenter__()
 
-    async def __aexit__(self, *tb):
-        async with anyio.open_cancel_scope(shield=True):
-            w, self._worker = self._worker, None
-            if w is not None:
-                await w.cancel()
-            w, self._reader = self._reader, None
-            if w is not None:
-                await w.cancel()
-            w, self._pinger = self._pinger, None
-            if w is not None:
-                await w.cancel()
+    def __aexit__(self, *tb):
+        return self._ae.__aexit__(*tb)
 
     def __aiter__(self):
         return self
@@ -492,18 +451,16 @@ class Actor:
         """
         self._ready = True
 
-    async def read_task(self, prefix: str, evt: anyio.abc.Event = None):
+    async def read_task(self, evt: anyio.abc.Event = None):
         """
-        Reader task. Override e.g. if you have a Serf middleman.
+        Reader task.
 
-        Call :meth:`queue_msg` with each incoming message.
+        Simply calls :meth:`queue_msg` with each incoming message.
         """
-        async with self._client.stream("user:" + prefix) as mon:
+        async with self._client.monitor() as mon:
             self.logger.debug("start listening")
             await evt.set()
             async for msg in mon:
-                msg = self._unpacker(msg.payload)
-                # self.logger.debug("recv %r", msg)
                 await self.queue_msg(msg)
 
     async def queue_msg(self, msg):
@@ -520,7 +477,7 @@ class Actor:
                 # This is a Hello message
                 if self._self_seen:
                     # We may see our own Hello only once
-                    raise SerfCollisionError()
+                    raise ActorCollisionError()
                 self._self_seen = True
             return  # sent by us
         if "history" not in msg:
@@ -533,14 +490,14 @@ class Actor:
         await self._send_ping(False)
         await anyio.sleep((self.random / 2 + 1.5) * self._gap + self._cycle)
         if not self._self_seen:
-            raise SerfTimeoutError()
+            raise ActorTimeoutError()
         await self._send_ping()
 
         t_dest = 0
         while True:
-            t_left = t_dest - time.time()
+            t_left = t_dest - time.monotonic()
             if self._tagged == 0:
-                t = max(self._next_ping_time - time.time(), 0)
+                t = max(self._next_ping_time - time.monotonic(), 0)
             elif t_left <= 0:
                 if self._tagged < 0:
                     t = 2 * self._gap
@@ -566,7 +523,7 @@ class Actor:
 
                     else:
                         raise RuntimeError("tagged", self._tagged)
-                t_dest = t + time.time()
+                t_dest = t + time.monotonic()
             else:
                 t = t_left
 
@@ -725,7 +682,7 @@ class Actor:
                 await self.post_event(RecoverEvent(pos, prefer_new, hist, h))
 
                 evt = anyio.create_event()
-                await self.spawn(self._send_delay_ping, pos, evt, hist)
+                await self._tg.spawn(self._send_delay_ping, pos, evt, hist)
                 await evt.wait()
 
         return prefer_new
@@ -811,13 +768,13 @@ class Actor:
                 self._history += self._name
                 self._get_next_ping_time()
             msg["history"] = history[0 : self._splits]  # noqa: E203
-        await self.send_event(self._prefix, msg)
+        await self.send_event(msg)
 
-    async def send_event(self, prefix, msg):
+    async def send_event(self, msg):
         """
         Send a message. Override e.g. if you have a middleman.
         """
-        await self._client.event(prefix, self._packer(msg), coalesce=False)
+        await self._client.send(msg)
 
     async def _send_delay_ping(self, pos, evt, history):
         """
@@ -858,7 +815,7 @@ class Actor:
 
     def _get_next_ping_time(self):
         t = self._time_to_next_ping()
-        self._next_ping_time = time.time() + self._cycle + self._gap * t
+        self._next_ping_time = time.monotonic() + self._cycle + self._gap * t
 
     def _time_to_next_ping(self):
         """Calculates the time until sending the next ping is a good idea,

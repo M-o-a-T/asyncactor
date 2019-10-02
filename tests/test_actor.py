@@ -3,7 +3,7 @@ import trio
 import time
 
 from .mock_serf import stdtest
-from asyncserf.actor import (
+from asyncactor.actor import (
     Actor,
     GoodNodeEvent,
     TagEvent,
@@ -35,7 +35,7 @@ async def test_10_all(autojump_clock):
         async def s1(i, *, task_status=trio.TASK_STATUS_IGNORED):
             nonlocal tagged
             async with st.client(i) as c:
-                async with Actor(c, "test10", "c_" + str(i), cfg={"nodes": N}) as k:
+                async with Actor(c, "c_" + str(i), cfg={"nodes": N}) as k:
                     task_status.started()
                     await k.set_value(i * 31)
                     c = 0
@@ -85,7 +85,7 @@ async def test_11_some(autojump_clock):
         async def s1(i, *, task_status=trio.TASK_STATUS_IGNORED):
             nonlocal c
             async with st.client(i) as cl:
-                async with Actor(cl, "test11", "c_" + str(i), cfg={"nodes": 3}) as k:
+                async with Actor(cl, "c_" + str(i), cfg={"nodes": 3}) as k:
                     task_status.started()
                     await k.set_value(i * 31)
                     async for m in k:
@@ -126,7 +126,7 @@ async def test_12_split1(autojump_clock, tocky):
         async def s1(i, *, task_status=trio.TASK_STATUS_IGNORED):
             nonlocal n_ping
             async with st.client(i) as c:
-                async with Actor(c, "test12", "c_" + str(i), cfg={"nodes": 3}) as k:
+                async with Actor(c, "c_" + str(i), cfg={"nodes": 3}) as k:
                     task_status.started()
                     await k.set_value(i * 31)
                     c = 0

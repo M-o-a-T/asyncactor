@@ -10,9 +10,7 @@ import attr
 import time
 from functools import partial
 
-import asyncserf.client
-from asyncserf.util import ValueEvent
-from asyncserf.stream import SerfEvent
+from asyncactor.abc import Transport, MonitorStream
 
 import logging
 
@@ -46,11 +44,18 @@ async def stdtest(n=1, **kw):
         def __iter__(self):
             return iter(self.s)
 
+
         @asynccontextmanager
         async def client(self, i: int = 0, **kv):
             """Get a client for the i'th server."""
-            async with asyncserf.client.serf_client() as c:
-                yield c
+            t = MockTransport(tg, self, i)
+            self.serfs.add(t)
+            try:
+                logger.debug("C START %d",i)
+                yield t
+            finally:
+                logger.debug("C STOP %d",i)
+                self.serfs.remove(t)
 
         def split(self, s):
             assert s not in self.splits
@@ -73,12 +78,6 @@ async def stdtest(n=1, **kw):
             ex.enter_context(mock.patch("time.time", new=tm))
             logging._startTime = tm()
 
-            ex.enter_context(
-                mock.patch(
-                    "asyncserf.client.serf_client", new=partial(mock_serf_client, st)
-                )
-            )
-
             class IsStarted:
                 def __init__(self, n):
                     self.n = n
@@ -98,89 +97,52 @@ async def stdtest(n=1, **kw):
         pass  # unwinding ex:AsyncExitStack
 
 
-@asynccontextmanager
-async def mock_serf_client(master, **cfg):
-    async with anyio.create_task_group() as tg:
-        ms = MockSerf(tg, master, **cfg)
-        master.serfs.add(ms)
-        try:
-            yield ms
-        finally:
-            master.serfs.remove(ms)
-        pass  # terminating mock_serf_client nursery
-
-
-class MockSerf:
-    def __init__(self, tg, master, **cfg):
+class MockTransport(Transport):
+    def __init__(self, tg, master, i=0, **cfg):
         self.cfg = cfg
         self.tg = tg
-        self.streams = {}
+        self.streams = set()
         self._master = master
+        self.i = i
 
     def __hash__(self):
         return id(self)
 
-    async def spawn(self, fn, *args, **kw):
-        async def run(evt=None, task_status=trio.TASK_STATUS_IGNORED):
-            with trio.CancelScope() as sc:
-                task_status.started(sc)
-                if evt is not None:
-                    await evt.set(sc)
-                await fn(*args, **kw)
+    def monitor(self):
+        return MockSerfStream(self)
 
-        evt = ValueEvent()
-        await self._tg.spawn(run, evt)
-        return await evt.get()
-
-    def stream(self, typ):
-        if "," in typ:
-            raise RuntimeError("not supported")
-        if not typ.startswith("user:"):
-            raise RuntimeError("not supported")
-        typ = typ[5:]
-        s = MockSerfStream(self, typ)
-        return s
-
-    async def event(self, typ, payload, coalesce=True):
+    async def send(self, payload):
         # logger.debug("SERF>%s> %r", typ, payload)
 
-        assert not coalesce
         for s in list(self._master.serfs):
             for x in self._master.splits:
-                if (s.cfg.get("i", 0) < x) != (self.cfg.get("i", 0) < x):
+                if (s.i < x) != (self.i < x):
                     break
             else:
-                sl = s.streams.get(typ, None)
-                if sl is not None:
-                    for s in sl:
-                        await s.q.put(payload)
+                for st in list(s.streams):
+                    await st.q.put(payload)
 
 
-class MockSerfStream:
-    def __init__(self, serf, typ):
-        self.serf = serf
-        self.typ = typ
-        self.q = None
+class MockSerfStream(MonitorStream):
+    q = None
 
     async def __aenter__(self):
-        logger.debug("SERF:MON START:%s", self.typ)
+        logger.debug("SERF:MON START")
         assert self.q is None
         self.q = anyio.create_queue(100)
-        self.serf.streams.setdefault(self.typ, []).append(self)
+        self.transport.streams.add(self)
         return self
 
     async def __aexit__(self, *tb):
-        self.serf.streams[self.typ].remove(self)
-        logger.debug("SERF:MON END:%s", self.typ)
+        self.transport.streams.remove(self)
+        logger.debug("SERF:MON END")
         self.q = None
 
     def __aiter__(self):
         self.q = anyio.create_queue(100)
         return self
 
-    async def __anext__(self):
-        res = await self.q.get()
+    def __anext__(self):
+        return self.q.get()
         # logger.debug("SERF<%s< %r", self.typ, res)
-        evt = SerfEvent(self)
-        evt.payload = res
-        return evt
+        return res
