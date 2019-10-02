@@ -46,3 +46,6 @@ coverage.xml
 *.un~
 *~
 /.pybuild
+
+# local stuff
+/T
