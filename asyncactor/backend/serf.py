@@ -7,9 +7,9 @@ from asyncserf import Serf
 import msgpack
 
 class SerfTransport(Transport):
-    def __init__(self, conn: Serf, usertag: str):
+    def __init__(self, conn: Serf, *topic):
         self.conn = conn
-        self.tag = usertag
+        self.tag = '.'.join(topic)
 
     def monitor(self):
         return SerfMonitor(self)

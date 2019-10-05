@@ -16,9 +16,9 @@ class MQTTTransport(Transport):
     MQTT does not have channels. Thus you need to call :meth:`deliver` 
     on every incoming message that matches the topic.
     """
-    def __init__(self, conn: MQTTClient, topic: str):
+    def __init__(self, conn: MQTTClient, *topic):
         self.conn = conn
-        self.topic = topic
+        self.topic = '/'.join(topic)
         self._monitor = None
 
     def monitor(self):
