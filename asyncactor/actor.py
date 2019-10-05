@@ -20,6 +20,7 @@ __all__ = [
         "PingEvent",
         "GoodNodeEvent",
         "RecoverEvent",
+        "NodeList",
     ]
 
 class NodeEvent:
