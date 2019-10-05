@@ -76,6 +76,7 @@ async def stdtest(n=1, **kw):
         st = S(tg)
         async with AsyncExitStack() as ex:
             ex.enter_context(mock.patch("time.time", new=tm))
+            ex.enter_context(mock.patch("time.monotonic", new=tm))
             logging._startTime = tm()
 
             class IsStarted:
