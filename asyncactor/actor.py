@@ -483,7 +483,6 @@ class Actor:
         Call this from your override of :meth:`read_task`
         with each incoming message.
         """
-        self.logger.debug("IN %s %r", self._name, msg)
         node = msg.get("node", None)
         if node is not None and node == self._name:
             if "history" not in msg:
