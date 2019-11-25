@@ -13,7 +13,7 @@ from asyncactor.actor import (
     PingEvent,
     RawPingEvent,
 )
-from asyncactor.backend import load_transport
+from asyncactor.backend import get_transport
 
 import logging
 from distmqtt.client import open_mqttclient
@@ -51,7 +51,7 @@ async def test_20_all():
     async def s1(i, *, task_status=trio.TASK_STATUS_IGNORED):
         nonlocal tagged
         async with open_mqttclient(client_id="act_test_%d" % (i,), config=Config) as C:
-            T = load_transport('mqtt')(C, "test_20")
+            T = get_transport('mqtt')(C, "test_20")
             await C._tg.spawn(read_loop,C,T)
             async with Actor(T, "c_" + str(i), cfg={"nodes": N, "gap":0.1, "cycle":1}) as k:
                 task_status.started()
@@ -101,7 +101,7 @@ async def test_21_some():
 
     async def s1(i, *, task_status=trio.TASK_STATUS_IGNORED):
         async with open_mqttclient(client_id="act_test_%d" % (i,), config=Config) as C:
-            T = load_transport('mqtt')(C, "test_21")
+            T = get_transport('mqtt')(C, "test_21")
             await C._tg.spawn(read_loop,C,T)
             nonlocal c
             async with Actor(T, "c_" + str(i), cfg={"nodes": 3, "gap":0.1, "cycle":1}) as k:

@@ -1,26 +1,26 @@
 
 #
-# Listener on top of an AsyncSerf connection
+# Listener on top of a DistKV transport
 #
 from asyncactor.abc import Transport, MonitorStream
 from asyncserf import Serf
 import msgpack
 
-class SerfTransport(Transport):
+class DistKVTransport(Transport):
     def __init__(self, conn: Serf, *topic):
         self.conn = conn
-        self.tag = '.'.join(topic)
+        self.topic = topic
 
     def monitor(self):
         return SerfMonitor(self)
 
     async def send(self, payload):
         payload = msgpack.packb(payload, use_bin_type=True)
-        await self.conn.event(name=self.tag, payload=payload, coalesce=False)
+        await self.conn.send(*self.topic, payload=payload)
 
 class SerfMonitor(MonitorStream):
     async def __aenter__(self):
-        self._mon1 = self.transport.conn.stream("user:"+self.transport.tag)
+        self._mon1 = self.transport.conn.monitor(*self.transport.topic)
         self._mon2 = await self._mon1.__aenter__()
         return self
 
@@ -36,4 +36,4 @@ class SerfMonitor(MonitorStream):
         msg = msgpack.unpackb(msg.payload, raw=False, use_list=False)
         return msg
 
-Transport = SerfTransport
+Transport = DistKVTransport
