@@ -3,7 +3,7 @@ import os
 import sys
 
 try:
-    from setuptools import setup
+    from setuptools import setup, find_packages
     from setuptools.command.test import test as TestCommand
 
     class PyTest(TestCommand):
@@ -44,7 +44,7 @@ setup(
     maintainer_email="matthias@urlichs.de",
     keywords=["Serf", "MQTT", "orchestration", "service discovery", "anyio"],
     license="GPL3",
-    packages=["asyncactor"],
+    packages=find_packages(),
     install_requires=["msgpack >= 0.5.0", "anyio >= 1.0.0", "outcome", "attrs >= 18.1"],
     extras_require={":python_version < '3.7'": ["async_generator", "async_exit_stack"]},
     tests_require=["pytest >= 2.5.2", "pytest-cov >= 2.3", "trio >= 0.11"],
