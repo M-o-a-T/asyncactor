@@ -21,11 +21,15 @@ class DistKVTransport(Transport):
 class SerfMonitor(MonitorStream):
     async def __aenter__(self):
         self._mon1 = self.transport.conn.monitor(*self.transport.topic)
-        self._mon2 = await self._mon1.__aenter__()
+        if hasattr(self._mon1,"__aenter__"):
+            self._mon2 = await self._mon1.__aenter__()
+        else:
+            self._mon2 = self._mon1
         return self
 
-    def __aexit__(self, *tb):
-        return self._mon1.__aexit__(*tb)
+    async def __aexit__(self, *tb):
+        if hasattr(self._mon1,"__aexit__"):
+            return await self._mon1.__aexit__(*tb)
 
     def __aiter__(self):
         self._it = self._mon2.__aiter__()
