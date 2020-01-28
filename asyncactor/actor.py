@@ -433,8 +433,9 @@ class Actor:
                     self._pinger = await tg.spawn(self._ping)
                     yield self
                 finally:
-                    self._tg = None
-                    await tg.cancel_scope.cancel()
+                    async with anyio.fail_after(2, shield=True):
+                        self._tg = None
+                        await tg.cancel_scope.cancel()
         self._ae = work(self)
         return self._ae.__aenter__()
 
