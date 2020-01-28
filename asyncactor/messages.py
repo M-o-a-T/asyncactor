@@ -1,0 +1,117 @@
+# Actor message types
+
+__all__ = [
+        "Message",
+        "SetupMessage",
+        "InitMessage",
+        "ActorMessage",
+        "HistoryMessage",
+]
+
+
+class DataError(TypeError):
+    """
+    Missing message data
+    """
+    pass
+
+
+_types = {}
+def _reg(cls):
+    _types[cls._type] = cls
+    return cls
+
+class Message:
+    _type = None
+    node = None  # must exist
+
+    def __new__(cls, t=None, **kv):
+        if cls is Message:
+            return object.__new__(_types[t])
+        elif t is not None and cls._type != t:
+            raise DataError("Type delta")
+        return object.__new__(cls)
+
+    def __init__(self, **kv):
+        for k,v in kv.items():
+            setattr(self,k,v)
+        if self._type is None:
+            raise DataError("Duh?")
+
+    @classmethod
+    def read(cls, msg):
+        cls = _types[msg['t']]
+        assert cls.type == msg['t']
+        return cls(**msg)
+
+    def pack(self):
+        msg = {'t':self._type}
+        for k,v in vars(self).items():
+            if not k.startswith('_'):
+                msg[k]=v
+        return msg
+
+
+class _NodeMessage(Message):
+    node=None
+    def __init__(self, **kv):
+        super().__init__(**kv)
+        if not self.node:
+            raise DataError("")
+
+
+@_reg
+class SetupMessage(Message):
+    """
+    Parameters. Not clocked. Strictly rising version number.
+    """
+    version:int = 0
+    cycle:float = None
+    gap:float = None
+    nodes:int = None
+    splits:int = None
+    n_hosts:int = None
+    _type='vers'
+
+    def verify(self):
+        if self.cycle < 1:
+            raise ValueError("cycle must be >= 1")
+        if self.gap < 0.:
+            raise ValueError("gap must be >= 0.1")
+        if self.cycle < self.gap*3:
+            raise ValueError("cycle must be >= 3*gap")
+
+
+@_reg
+class InitMessage(_NodeMessage):
+    """
+    Sent when a node starts up.
+    MUST NOT appear twice for a given node.
+    """
+    _type='init'
+
+
+@_reg
+class PingMessage(_NodeMessage):
+    """
+    Your regular actor announcement.
+    """
+    _type='ping'
+    value = None
+    history = () # NodeList
+
+
+@_reg
+class HistoryMessage(Message):
+    """
+    Your regular actor announcement.
+    """
+    _type='hist'
+    value = None
+    history = () # NodeList
+
+    @property
+    def node(self):
+        return self.history[0]
+
+

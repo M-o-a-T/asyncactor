@@ -10,10 +10,12 @@ from .abc import Transport
 from .exceptions import ActorTimeoutError, ActorCollisionError
 from .events import *
 from .nodelist import *
+from .messages import *
 
 __all__ = [
         "Actor",
     ]
+
 
 class Actor:
     """
@@ -35,6 +37,8 @@ class Actor:
       client: The Transport client to use
       name (str): This node's name. **Must** be unambiguous.
       cfg (dict): a dict containing additional configuration values.
+      enabled (bool): if False, start the actor in passive monitoring mode.
+      send_raw (bool): flag whether to send raw-message events (debugging)
 
     The config dict may contain these values.
 
@@ -52,6 +56,10 @@ class Actor:
         parameter to 9.
       n_hosts: The rough number of nodes that might participate.
         Defaults to 10.
+      version: this configuration's version number. Overridden by the
+        network as soon as a higher-versioned message appears. You MUST
+        increment this integer by 2 (or more) whenever you change a config
+        value.
 
     Actor coordinates with its peers to broadcast one ping per cycle; the
     actual time between cycle starts may be up to ``2*gap`` longer.
@@ -63,14 +71,16 @@ class Actor:
     _pinger = None
     _value = None
 
-    DEFAULTS = dict(cycle=10, gap=1.5, nodes=5, splits=4, n_hosts=10)
+    DEFAULTS = dict(cycle=10, gap=1.5, nodes=5, splits=4, n_hosts=10, version=0)
 
     def __init__(
         self,
         client: Transport,
         name: str,
         cfg: dict = {},
+        *,
         enabled: bool = True,
+        send_raw: bool = False,
     ):
         self._client = client
         self._name = name
@@ -80,19 +90,10 @@ class Actor:
         self._cfg.update(self.DEFAULTS)
         self._cfg.update(cfg)
 
-        self._cycle = self._cfg["cycle"]
-        self._gap = self._cfg["gap"]
-        self._nodes = self._cfg["nodes"]
-        self._splits = self._cfg["splits"]
-        self._n_hosts = self._cfg["n_hosts"]
+        self._version = SetupMessage(**self._cfg)
+        self._version_job = None
+        self._version.verify()
         self._self_seen = False
-
-        if self._cycle < 1:
-            raise ValueError("cycle must be >= 1")
-        if self._gap < 0.:
-            raise ValueError("gap must be >= 0.1")
-        if self._cycle < self._gap*3:
-            raise ValueError("cycle must be >= 3*gap")
 
         self._evt_q = anyio.create_queue(1)
         self._rdr_q = anyio.create_queue(99)
@@ -100,6 +101,7 @@ class Actor:
         self._ready = False
         self._tagged = 0 if enabled else -1  # >0: "our" tag is progressing
         self._valid_pings = 0
+        self._send_raw = send_raw
 
         self._values = {}  # map names to steps
         self._history = NodeList(self._nodes)  # those in the loop
@@ -114,6 +116,30 @@ class Actor:
 
         self._next_ping_time = 0
         self._recover_pings = {}
+
+
+    # Accessors for config values
+
+    @property
+    def _cycle(self):
+        return self._version.cycle
+
+    @property
+    def _gap(self):
+        return self._version.gap
+
+    @property
+    def _nodes(self):
+        return self._version.nodes
+
+    @property
+    def _splits(self):
+        return self._version.splits
+
+    @property
+    def _n_hosts(self):
+        return self._version.n_hosts
+
 
     @property
     def random(self):
@@ -250,23 +276,23 @@ class Actor:
         Call this from your override of :meth:`read_task`
         with each incoming message.
         """
-        node = msg.get("node", None)
-        if node is not None and node == self._name:
-            if "history" not in msg:
-                # This is a Hello message
-                if self._self_seen:
-                    # We may see our own Hello only once
-                    raise ActorCollisionError()
-                self._self_seen = True
-            return  # sent by us
-        if "history" not in msg:
-            return  # somebody else's Ping
+        if self._send_raw:
+            await self.post_event(RawMsgEvent(msg))
+        msg = Message(**msg)
+        if type(msg) is InitMessage and msg.node == self._name:
+            if self._self_seen:
+                # We may see our own Hello only once
+                raise ActorCollisionError()
+            self._self_seen = True
+
         await self._rdr_q.put(msg)
 
     async def _run(self):
         """
         """
-        await self._send_ping(False)
+        await self._send_msg(InitMessage(node=self._name))
+        await self._send_msg(self._version)
+
         await anyio.sleep((self.random / 2 + 1.5) * self._gap + self._cycle)
         if not self._self_seen:
             raise ActorTimeoutError()
@@ -319,12 +345,27 @@ class Actor:
                 # If we're about to be tagged and another message arrives,
                 # skip this turn, for added safety.
                 self._tagged = 0
-            await self.post_event(RawPingEvent(msg))
 
             if await self.process_msg(msg):
                 if self._tagged == 3:
                     await self.post_event(UntagEvent())
                 self._tagged = 0
+
+    async def update_config(self, cfg):
+        """
+        Update the current configuration.
+
+        It is an error to not supersede the old config.
+        """
+        self._cfg = {}
+        self._cfg.update(self.DEFAULTS)
+        self._cfg.update(cfg)
+
+        v = SetupMessage(**self._cfg)
+        if v.version <= self._version.version:
+            raise ValueError("You need a version > %s" % (self._version.version,))
+        self._version = v
+        await self._send_msg(v)
 
     async def enable(self, length=None):
         """
@@ -361,12 +402,10 @@ class Actor:
         self._tagged = -1
 
     async def process_msg(self, msg):
-        """Process this incoming message."""
-
-        if "node" in msg:
-            msg_node = msg["node"]
-        else:
-            msg_node = msg["history"][0]
+        """Process this incoming message.
+        
+        Returns ``True`` if the message is a valid, not-superseded ping.
+        """
 
         if self._tagged < 0:
             self._get_next_ping_time()
@@ -376,29 +415,56 @@ class Actor:
         # We start off by sending a Ping. Thus our history is not empty.
 
         prev_node = self._history[0]
-        this_val = msg["value"]
 
-        if "node" in msg:
+        if type(msg) is PingMessage:
             # This is a recovery ping.
-            ping = self._recover_pings.get(msg_node, None)
+            ping = self._recover_pings.get(msg.node, None)
             if isinstance(ping, anyio.abc.Event):
                 # We're waiting for this.
                 await ping.set()
             else:
                 # This ping is not expected, but it might have arrived before its cause.
                 # Record that fact so that we don't also send it.
-                self._recover_pings[msg_node] = self._valid_pings
+                self._recover_pings[msg.node] = self._valid_pings
 
-        if msg_node == self._name:
+        elif type(msg) is InitMessage:
+            return # already processed
+
+        elif type(msg) is SetupMessage:
+            if msg.version > self._version.version:
+                # Supersede my params
+                self._version = msg
+                await self.post_event(SetupEvent(msg))
+
+            elif msg.version < self._version.version:
+                # Lower version seen: send my own version!
+                if self._tagged > 1:
+                    await self._send_msg(self._versioN)
+                else:
+                    pos = hist.index(self._name)
+                    if pos > 0:
+                        self._tg.spawn(self._send_delay_version, pos)
+
+            elif self._version_job is not None:
+                await self._version_job.cancel()
+                self._version_job = None
+            return
+
+        elif type(msg) is HistoryMessage:
+            pass
+        else:
+            raise RuntimeError("unknown message type")
+
+        if msg.node == self._name:
             # my own message, returned
             return
 
-        if msg_node == prev_node:
+        if msg.node == prev_node:
             # again, from that sender. Ideally that should not happen
             # because our timeout should be earlier, but Shit Happens.
             return
 
-        self._values[msg_node] = this_val = msg["value"]
+        self._values[msg.node] = this_val = msg.value
 
         if self._value is None and this_val is not None:
             # The other node is ready
@@ -406,39 +472,39 @@ class Actor:
                 GoodNodeEvent(
                     list(
                         h
-                        for h in msg["history"]
+                        for h in msg.history
                         if self._values.get(h, None) is not None
                     )
                 )
             )
 
-        if msg["history"] and (list(msg["history"][1:2]) == self._history[0:1]):
-            if "node" in msg:
-                # Standard ping.
-                self._prev_history = self._history
-                self._history += msg_node
-                self._get_next_ping_time()
-                await self._ping_q.put(msg)
-                return True
-            else:
-                # This is a recovery ping for our side, after a split.
+        if msg.history and (list(msg.history[1:2]) == self._history[0:1]):
+            if type(msg) is HistoryMessage:
+                # This is a recovery ping, after a split.
                 # Ignore it: we already initiated recovery when sending the
                 # notification, see below.
                 return
 
-        # Colliding pings.
-        same_prev = msg["history"] and (list(msg["history"][1:2]) == self._history[1:2])
+            # Standard ping.
+            self._prev_history = self._history
+            self._history += msg.node
+            self._get_next_ping_time()
+            await self._ping_q.put(msg)
+            return True
 
-        prefer_new = self.has_priority(msg_node, prev_node)
+        # Colliding pings.
+        same_prev = msg.history and (list(msg.history[1:2]) == self._history[1:2])
+
+        prefer_new = self.has_priority(msg.node, prev_node)
 
         hist = NodeList(0, self._history)
         if prefer_new:
-            nh = NodeList(self._nodes, msg["history"])  # self._prev_history
+            nh = NodeList(self._nodes, msg.history)  # self._prev_history
             self._history = nh
 
             if self._tagged:
                 if self._tagged == 3:
-                    await self.post_event(DetagEvent(msg_node))
+                    await self.post_event(DetagEvent(msg.node))
                 self._tagged = 0
 
             self._get_next_ping_time()
@@ -455,9 +521,9 @@ class Actor:
             except ValueError:
                 pass
             else:
-                h = NodeList(0, msg["history"])
-                if "node" in msg:
-                    h += msg["node"]
+                h = NodeList(0, msg.history)
+                if type(msg) is not HistoryMessage:
+                    h += msg.node
                 await self.post_event(RecoverEvent(pos, prefer_new, hist, h))
 
                 evt = anyio.create_event()
@@ -530,30 +596,24 @@ class Actor:
         return a < b
 
     async def _send_ping(self, history=None):
-        if history is False:
-            msg = {"node": self._name}
+        if self._tagged < 0:
+            return
+
+        if history is not None:
+            msg = HistoryMessage(value=self._values[history[0]])
         else:
-            if self._tagged < 0:
-                return
+            msg = PingMessage(node=self._name, value=self._value)
+            self._values[self._name] = self._value
+            if self._history:
+                self._tagged = 1
+            history = self._prev_history = self._history
+            self._history += self._name
+            self._get_next_ping_time()
+        msg.history = history[0 : self._splits]  # noqa: E203
+        await self._send_msg(msg)
 
-            if history is not None:
-                msg = {"value": self._values[history[0]]}
-            else:
-                msg = {"node": self._name, "value": self._value}
-                self._values[self._name] = self._value
-                if self._history:
-                    self._tagged = 1
-                history = self._prev_history = self._history
-                self._history += self._name
-                self._get_next_ping_time()
-            msg["history"] = history[0 : self._splits]  # noqa: E203
-        await self.send_event(msg)
-
-    async def send_event(self, msg):
-        """
-        Send a message. Override e.g. if you have a middleman.
-        """
-        await self._client.send(msg)
+    async def _send_msg(self, msg:Message):
+        await self._client.send(msg.pack())
 
     async def _send_delay_ping(self, pos, evt, history):
         """
@@ -590,7 +650,29 @@ class Actor:
             if pos:
                 # Complain if we're not the first node.
                 self.logger.info("PingDelay: no signal %d", pos)
-            await self._send_ping(history=history)
+            await self._send_ping(history)
+
+    async def _send_delay_version(self, pos):
+        """
+        After recovery, each side needs to send one message. Depending on
+        my position in the list of members on my side, I wait some time
+        for earlier nodes to do that. If no message arrives I do it.
+
+        This is complicated by the fact that multiple recovery efforts may
+        or may not be in progress.
+        """
+        # For pos=0 this is a no-op and times out immediately
+        v = self._version.version
+        async with anyio.create_cancel_scope() as xx:
+            self._version_job = xx
+            async with anyio.move_on_after(self._gap * (1 - 1 / (1 << pos))) as x:
+                await e.wait()
+            if self._version.version == v and x.cancel_called:
+                # Timed out: thus, I send.
+                await self._send_msg(self._version)
+
+        if self._version_job is xx:
+            self._version_job = None
 
     def _get_next_ping_time(self):
         t = self._time_to_next_ping()

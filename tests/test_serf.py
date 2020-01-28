@@ -9,9 +9,7 @@ from asyncactor.actor import (
     GoodNodeEvent,
     TagEvent,
     UntagEvent,
-    RecoverEvent,
     PingEvent,
-    RawPingEvent,
 )
 from asyncactor.backend import get_transport
 

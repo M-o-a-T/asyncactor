@@ -6,7 +6,7 @@ __all__ = [
         "TagEvent",
         "UntagEvent",
         "DetagEvent",
-        "RawPingEvent",
+        "RawMsgEvent",
         "PingEvent",
         "GoodNodeEvent",
         "RecoverEvent",
@@ -30,10 +30,14 @@ class AuthPingEvent(NodeEvent):
 class TagEvent(AuthPingEvent):
     """
     This event says that for the moment, you're "it".
+
+    Arguments:
+      node(str): this node name.
+      value (any): the value attached to me.
     """
 
-    def __init__(self, name, value):
-        self.node = name
+    def __init__(self, node, value):
+        self.node = node
         self.value = value
 
     def __repr__(self):
@@ -65,19 +69,20 @@ class DetagEvent(UntagEvent):
         return "<DeTag %r>" % (self.node,)
 
 
-class RawPingEvent(NodeEvent):
+class RawMsgEvent(NodeEvent):
     """
-    A ping from another node shows up. Not yet filtered!
+    A message shows up. Not filtered. You must set "send_raw" when you
+    create the actor.
 
     Arguments:
-      msg (dict): The ping message of the currently-active actor.
+      msg (dict): The raw data 
     """
 
     def __init__(self, msg):
         self.msg = msg
 
     def __repr__(self):
-        return "<RawPing %r>" % (self.msg,)
+        return "<RawMsg %r>" % (self.msg,)
 
 
 class PingEvent(AuthPingEvent):
@@ -85,7 +90,7 @@ class PingEvent(AuthPingEvent):
     A ping from another node shows up: the node ``.node`` is "it".
 
     Arguments:
-      msg (dict): The ping message of the currently-active actor.
+      msg (Message): The ping message sent by the currently-active actor.
     """
 
     def __init__(self, msg):
@@ -153,4 +158,21 @@ class RecoverEvent(NodeEvent):
             self.local_nodes,
             self.remote_nodes,
         )
+
+
+class SetupEvent(NodeEvent):
+    """
+    Parameters have been updated, most likely by the network.
+    """
+    version=None
+
+    def __init__(self, msg):
+        for k in "version cycle gap nodes splits n_hosts".split():
+            try:
+                setattr(self,k,getattr(msg,k))
+            except AttributeError:
+                pass
+
+    def __repr__(self):
+        return "<Setup v:%s>" % (self.version,)
 
