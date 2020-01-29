@@ -4,7 +4,7 @@ __all__ = [
         "Message",
         "SetupMessage",
         "InitMessage",
-        "ActorMessage",
+        "PingMessage",
         "HistoryMessage",
 ]
 
