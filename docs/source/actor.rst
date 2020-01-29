@@ -25,15 +25,14 @@ Collisions are avoided by appropriately modelling the "some time after"
 part; if that fails and messages cross each other, collisions are resolved
 deterministically.
 
-
-The resolution mechanism prefers new actors. Existing actors are compared
-by their position in the cycle. Otherwise, a ``value`` parameter that's set
-by :meth:`Actor.set_value` is used. If these values happen to be equal, the
-collision is resolved by comparing the node names (which must not be
-equal).
+The resolution mechanism prefers new actors. Participating actors are
+compared by their position in the cycle. With new actors, a ``value``
+parameter that's set by :meth:`Actor.set_value` is used. If these values
+happen to be equal, the collision is resolved by comparing the node names
+(which must not be equal).
 
 This algorithm intentionally does not require timestamps or similar means
-of resolving a collision. If required, you can use them as (part of) the
+of resolving a collision. If necessary, you can use them as (part of) the
 value.
 
 The resolution method may be changed, if necessary, by overriding
@@ -44,8 +43,10 @@ the new leader.
 Depending on the parameters, the default implementation randomly selects a
 number of participating actors and round-robins the "it" role between them.
 
-The value does **not** determine which nodes are actors; it is only used for
-conflict resolution in case of a collision.
+A node's value does **not** determine which nodes are actors; it is only
+used for conflict resolution in case of a collision.
+There is one exception to this rule: a value of ``None`` indicates that a
+node is not ready and should not be included if possible)
 
 Occasionally, an actor that's not part of the cycle may butt in. This can
 be changed by overriding :meth:`Actor.ping_delay`. You're free to base its
@@ -81,8 +82,6 @@ A :class:`RawMsgEvent`, on the other hand, is triggered as soon as a
 message from another participant arrives. These events may appear at any
 time, particularly when resolving network splits; you may analyze their
 contents, but shouldn't change your program flow at the time they arrive.
-
-.. autoclass:: RawMsgEvent
 
 If you're "it", you get a :class:`TagEvent`.
 
@@ -129,4 +128,6 @@ direct TCP connection to the actor in question, and download the current
 state.
 
 .. autoclass:: GoodNodeEvent
+
+.. autoclass:: RawMsgEvent
 
