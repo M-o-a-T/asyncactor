@@ -53,7 +53,7 @@ return value, which should be between zero and two, on whatever information
 you have for your node.
 
 An actor can be disabled; while it is, it will still generate
-:class:`PingEvent` and :class:`RawPingEvent` events but it won't try to
+:class:`PingEvent` and :class:`RawMsgEvent` events but it won't try to
 participate in the protocol. You can use this to selectively enable or
 disable actors if you want e.g. to only let the highest-priority actors
 be *it*.
@@ -77,12 +77,12 @@ these events per cycle.
 
 .. autoclass:: PingEvent
 
-A :class:`RawPingEvent`, on the other hand, is triggered as soon as a
+A :class:`RawMsgEvent`, on the other hand, is triggered as soon as a
 message from another participant arrives. These events may appear at any
 time, particularly when resolving network splits; you may analyze their
 contents, but shouldn't change your program flow at the time they arrive.
 
-.. autoclass:: RawPingEvent
+.. autoclass:: RawMsgEvent
 
 If you're "it", you get a :class:`TagEvent`.
 
