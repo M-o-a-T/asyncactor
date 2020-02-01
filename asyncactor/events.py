@@ -41,7 +41,7 @@ class TagEvent(AuthPingEvent):
         self.value = value
 
     def __repr__(self):
-        return "<Tag>"
+        return "<Tag %s %r>" % (self.node,self.value)
 
 
 class UntagEvent(NodeEvent):
@@ -66,7 +66,7 @@ class DetagEvent(UntagEvent):
         self.node = node
 
     def __repr__(self):
-        return "<DeTag %r>" % (self.node,)
+        return "<DeTag %s>" % (self.node,)
 
 
 class RawMsgEvent(NodeEvent):
@@ -134,7 +134,7 @@ class GoodNodeEvent(NodeEvent):
         self.nodes = nodes
 
     def __repr__(self):
-        return "<Good %r>" % (self.nodes,)
+        return "<Good %s>" % (self.nodes,)
 
 
 class RecoverEvent(NodeEvent):
