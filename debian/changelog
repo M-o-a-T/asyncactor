@@ -1,3 +1,9 @@
+asyncactor (0.20.2-1) unstable; urgency=medium
+
+  * Merge
+
+ -- Matthias Urlichs <matthias@urlichs.de>  Sat, 01 Feb 2020 22:02:28 +0100
+
 asyncactor (0.20.1-1) unstable; urgency=medium
 
   * Stupid error
