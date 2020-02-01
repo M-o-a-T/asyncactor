@@ -84,7 +84,7 @@ class Actor:
     ):
         self._client = client
         self._name = name
-        self.logger = logging.getLogger("asyncactor.%s" % (self._name,))
+        self.logger = logging.getLogger("asyncactor.%s.%s" % (self._name, client.topic[-1]))
 
         self._cfg = {}
         self._cfg.update(self.DEFAULTS)
