@@ -38,6 +38,9 @@ class Message:
         if self._type is None:
             raise DataError("Duh?")
 
+    def __repr__(self):
+        return "<%sMsg %s>" % (self._type, self.node,)
+
     @classmethod
     def read(cls, msg):
         cls = _types[msg['t']]
@@ -81,6 +84,9 @@ class SetupMessage(Message):
         if self.cycle < self.gap*3:
             raise ValueError("cycle must be >= 3*gap")
 
+    def __repr__(self):
+        m = super().__repr__()
+        return "%s %s%s" % (m[:-1],self.version,m[-1:])
 
 @_reg
 class InitMessage(_NodeMessage):
@@ -100,6 +106,10 @@ class PingMessage(_NodeMessage):
     value = None
     history = () # NodeList
 
+    def __repr__(self):
+        m = super().__repr__()
+        return "%s %s %s%s" % (m[:-1],self.value,':'.join(self.history), m[-1:])
+
 
 @_reg
 class HistoryMessage(Message):
@@ -113,5 +123,9 @@ class HistoryMessage(Message):
     @property
     def node(self):
         return self.history[0]
+
+    def __repr__(self):
+        m = super().__repr__()
+        return "%s %s%s" % (m[:-1],':'.join(self.history), m[-1:])
 
 
