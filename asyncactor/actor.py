@@ -668,6 +668,8 @@ class Actor:
         # For pos=0 this is a no-op and times out immediately
         v = self._version.version
         async with anyio.create_cancel_scope() as xx:
+            if self._version_job is not None:
+                await self._version_job.cancel()
             self._version_job = xx
             async with anyio.move_on_after(self._gap * (1 - 1 / (1 << pos))) as x:
                 await e.wait()
