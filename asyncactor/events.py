@@ -104,7 +104,10 @@ class PingEvent(AuthPingEvent):
         """
         Name of the node. Shortcut to ``msg['node']``.
         """
-        return self.msg["node"]
+        try:
+            return self.msg.node
+        except AttributeError:
+            return None
 
     @property
     def value(self):
@@ -112,8 +115,8 @@ class PingEvent(AuthPingEvent):
         Name of the node. Shortcut to ``msg['node']``.
         """
         try:
-            return self.msg["value"]
-        except KeyError:
+            return self.msg.value
+        except AttributeError:
             return None
 
 
