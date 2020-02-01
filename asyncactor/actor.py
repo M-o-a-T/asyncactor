@@ -375,7 +375,11 @@ class Actor:
           length (int): New max length of the history. Default: Leave alone.
         """
         if length is not None:
-            self._nodes = length
+            if self._version.nodes < length:
+                self._version.nodes = length
+                self._version.version += 1
+                await self._send_msg(self._version)
+
         if self._tagged != -1:
             return
         self._tagged = 0
