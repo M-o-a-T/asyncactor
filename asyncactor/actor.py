@@ -439,7 +439,7 @@ class Actor:
             elif msg.version < self._version.version:
                 # Lower version seen: send my own version!
                 if self._tagged > 1:
-                    await self._send_msg(self._versioN)
+                    await self._send_msg(self._version)
                 else:
                     pos = hist.index(self._name)
                     if pos > 0:
