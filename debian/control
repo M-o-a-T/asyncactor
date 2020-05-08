@@ -8,7 +8,7 @@ Build-Depends: dh-python, python3-setuptools, python3-all, debhelper (>= 9),
   python3-trio,
   python3-anyio,
 Standards-Version: 3.9.6
-Homepage: https://github.com/smurfix/asyncserf
+Homepage: https://github.com/smurfix/asyncseractor
 
 Package: python3-asyncactor
 Architecture: all
@@ -18,9 +18,13 @@ Depends: ${misc:Depends}, ${python3:Depends},
 Recommends:
   python3-distmqtt,
   python3-asyncserf (>> 0.16),
-Description: Python client for the Serf orchestration tool
- AsyncSerf is an async Python interface to Serf, the decentralised solution
- for service discovery and orchestration.
- .
- It uses anyio to handle concurrency, thus works with asyncio, trio, and curio.
-
+Description: Orchestrator on top of unreliable message massing
+  AsyncActor is an async Python module that aids in service discovery and
+  "somewhat-leader" election in a heterogenous, sometimes-disconnected network
+  with low transmission delay.
+  .
+  AsyncActor can run on top of any reliable broadcast channel.
+  This version includes back-ends for Serf and MQTT.
+  .
+  AsyncActor sends as few packets as possible, thus is well-suited for
+  IoT-related applications with many stations but limited bandwidth.
