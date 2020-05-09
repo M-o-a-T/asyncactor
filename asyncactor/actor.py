@@ -117,6 +117,8 @@ class Actor:
         self._next_ping_time = 0
         self._recover_pings = {}
 
+    def __repr__(self):
+        return "<Actor %s %r>" % (self._name,self._client)
 
     # Accessors for config values
 

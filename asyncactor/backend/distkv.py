@@ -12,13 +12,16 @@ class DistKVTransport(Transport):
         self.topic = topic
 
     def monitor(self):
-        return SerfMonitor(self)
+        return DistKVMonitor(self)
 
     async def send(self, payload):
         payload = msgpack.packb(payload, use_bin_type=True)
         await self.conn.send(*self.topic, payload=payload)
 
-class SerfMonitor(MonitorStream):
+    def __repr__(self):
+        return "<DistKV:%s %r>" % (self.topic,self.conn)
+
+class DistKVMonitor(MonitorStream):
     async def __aenter__(self):
         self._mon1 = self.transport.conn.monitor(*self.transport.topic)
         if hasattr(self._mon1,"__aenter__"):
@@ -39,5 +42,8 @@ class SerfMonitor(MonitorStream):
         msg = await self._it.__anext__()
         msg = msgpack.unpackb(msg.payload, raw=False, use_list=False)
         return msg
+
+    def __repr__(self):
+        return "<Mon:%r>" % (self.transport,)
 
 Transport = DistKVTransport

@@ -18,6 +18,9 @@ class SerfTransport(Transport):
         payload = msgpack.packb(payload, use_bin_type=True)
         await self.conn.event(name=self.tag, payload=payload, coalesce=False)
 
+    def __repr__(self):
+        return "<Serf:%s @%r>" % (self.tag,self.conn)
+
 class SerfMonitor(MonitorStream):
     async def __aenter__(self):
         self._mon1 = self.transport.conn.stream("user:"+self.transport.tag)
@@ -35,5 +38,8 @@ class SerfMonitor(MonitorStream):
         msg = await self._it.__anext__()
         msg = msgpack.unpackb(msg.payload, raw=False, use_list=False)
         return msg
+
+    def __repr__(self):
+        return "<Mon:%r>" % (self.transport,)
 
 Transport = SerfTransport

@@ -47,6 +47,8 @@ class MQTTTransport(Transport):
         payload = msgpack.unpackb(payload, raw=False, use_list=False)
         return self._monitor._q.put(payload)
 
+    def __repr__(self):
+        return "<MQTT:%s @%r>" % (self.topic,self.conn)
 
 class MQTTMonitor(MonitorStream):
     def __init__(self, *a, **k):
@@ -71,5 +73,8 @@ class MQTTMonitor(MonitorStream):
 
     def __anext__(self):
         return self._q.get()
+
+    def __repr__(self):
+        return "<Mon:%r>" % (self.transport,)
 
 Transport = MQTTTransport
