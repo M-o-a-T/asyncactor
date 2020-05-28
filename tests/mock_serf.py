@@ -110,6 +110,10 @@ class MockTransport(Transport):
     def __hash__(self):
         return id(self)
 
+    @property
+    def topic(self):
+        return "mock_%d" % (self.i,)
+
     def monitor(self):
         return MockSerfStream(self)
 
