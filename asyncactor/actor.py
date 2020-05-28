@@ -93,6 +93,7 @@ class Actor:
         self._version = SetupMessage(**self._cfg)
         self._version_job = None
         self._version.verify()
+        self._off_nodes = self._version.nodes
         self._self_seen = False
 
         self._evt_q = anyio.create_queue(1)
@@ -132,6 +133,8 @@ class Actor:
 
     @property
     def _nodes(self):
+        if self._tagged < 0:
+            return self._off_nodes
         return self._version.nodes
 
     @property
@@ -403,7 +406,8 @@ class Actor:
         if self._tagged == 3:
             await self.post_event(UntagEvent())
         if length is not None:
-            self._nodes = length
+            self._off_nodes = length
+
         self._history.maxlen = length
         self._tagged = -1
 
