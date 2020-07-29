@@ -10,6 +10,7 @@ __all__ = [
     "PingEvent",
     "GoodNodeEvent",
     "RecoverEvent",
+    "SetupEvent",
 ]
 
 
