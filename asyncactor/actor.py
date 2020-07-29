@@ -646,7 +646,7 @@ class Actor:
         if (
             isinstance(ping, anyio.abc.Event)
             or isinstance(ping, int)
-            and ping < self._valid_pings - self._nodes / 2
+            and self._nodes > 1 and ping < self._valid_pings - self._nodes / 2
         ):
             if isinstance(ping, int):
                 del self._recover_pings[node]
@@ -719,7 +719,7 @@ class Actor:
             if h == self._name:
                 s = lv
             lv += 1
-            if lv > self._nodes:
+            if self._nodes > 0 and lv > self._nodes:
                 break
         if not self._ready:
             if p > lv // 2:
@@ -729,7 +729,7 @@ class Actor:
         return self.ping_delay(
             s - 1,
             lv,
-            self._nodes - len(self._history),
+            (self._nodes - len(self._history)) if self._nodes > 0 else 1,
             max(len(self._values), self._n_hosts),
         )
 
@@ -750,7 +750,7 @@ class Actor:
           pos: The position of this node in the ping history.
             Zero: at the front. Negative: not in the list.
           length: The total length of the list.
-          todo: True if the number of nodes is too low
+          todo: >0 if the number of nodes is too low
 
         The default implementation uses ``0.5, 0.75, 0.875, …`` for nodes
         on the list, prioritizing the last node; some value between 0 and
