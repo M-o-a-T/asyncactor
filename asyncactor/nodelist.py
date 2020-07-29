@@ -1,8 +1,9 @@
 # Node list
 
 __all__ = [
-        "NodeList",
-    ]
+    "NodeList",
+]
+
 
 class NodeList(list):
     """
@@ -40,7 +41,7 @@ class NodeList(list):
     >>> n += "c"
     >>> n
     ['c', 'd']
-    >>> 
+    >>>
     """
 
     def __init__(self, maxlen, data=(), mutable=False):
@@ -75,15 +76,10 @@ class NodeList(list):
         # + we either
         # -- removed something (except from the end), or
         # -- the list is maxed out, i.e. we didn't remove anything
-        if (
-            self.maxlen > 0
-            and len(self) > 0
-            and (0 <= i < len(self) or len(self) == self.maxlen)
-        ):
+        if self.maxlen > 0 and len(self) > 0 and (0 <= i < len(self) or len(self) == self.maxlen):
             self.pop(-1)
         self.insert(0, name)
         return self
 
     def __add__(self, name):
         return self.__iadd__(name, mutable=False)
-

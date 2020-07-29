@@ -3,7 +3,6 @@ import trio
 import os
 import time
 
-from .mock_serf import stdtest
 from asyncactor.actor import (
     Actor,
     GoodNodeEvent,
@@ -20,13 +19,17 @@ logging.basicConfig(level=logging.INFO)
 
 N = 20
 
-def _env(s,d,f=lambda x:x):
-    es = 'SERF_'+s.upper()
+
+def _env(s, d, f=lambda x: x):
+    es = "SERF_" + s.upper()
     es = os.environ.get(es, None)
     Config[s] = f(es) if es is not None else d
-Config={}
-_env('host','localhost')
-_env('port',7373,int)
+
+
+Config = {}
+_env("host", "localhost")
+_env("port", 7373, int)
+
 
 @pytest.mark.trio
 async def test_20_all():
@@ -34,15 +37,14 @@ async def test_20_all():
     This test starts multiple servers at the same time and checks that all
     of them get their turn.
     """
-    N = 5
     tagged = False
     msgs = {}
 
     async def s1(i, *, task_status=trio.TASK_STATUS_IGNORED):
         nonlocal tagged
         async with serf_client(**Config) as C:
-            T = get_transport('serf')(C, "test_20")
-            async with Actor(T, "c_" + str(i), cfg={"nodes": N, "gap":0.1, "cycle":1}) as k:
+            T = get_transport("serf")(C, "test_20")
+            async with Actor(T, "c_" + str(i), cfg={"nodes": N, "gap": 0.1, "cycle": 1}) as k:
                 task_status.started()
                 await k.set_value(i * 31)
                 c = 0
@@ -90,9 +92,9 @@ async def test_21_some():
 
     async def s1(i, *, task_status=trio.TASK_STATUS_IGNORED):
         async with serf_client(**Config) as C:
-            T = get_transport('serf')(C, "test_21")
+            T = get_transport("serf")(C, "test_21")
             nonlocal c
-            async with Actor(T, "c_" + str(i), cfg={"nodes": 3, "gap":0.1, "cycle":1}) as k:
+            async with Actor(T, "c_" + str(i), cfg={"nodes": 3, "gap": 0.1, "cycle": 1}) as k:
                 task_status.started()
                 await k.set_value(i * 31)
                 async for m in k:
@@ -117,4 +119,3 @@ async def test_21_some():
 
         await trio.sleep(10)
     pass  # server end
-

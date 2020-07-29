@@ -1,14 +1,15 @@
-
 #
 # Abstract classes for the underlying transport
-# 
+#
 
 from abc import ABCMeta, abstractmethod
 
-from typing import Dict,Union,Tuple,List
+from typing import Dict, Union, Tuple, List
 
-Packable = Union[str, bytes, type(None), int, float,
-        Dict[str,'Packable'], Tuple['Packable'], List['Packable']]
+Packable = Union[
+    str, bytes, type(None), int, float, Dict[str, "Packable"], Tuple["Packable"], List["Packable"]
+]
+
 
 class Transport(metaclass=ABCMeta):
     """
@@ -18,18 +19,21 @@ class Transport(metaclass=ABCMeta):
     The transport must be able to carry lists, dicts, None, and numbers
     (int, float) transparently. True/False may be transformed t0 0/1.
     """
+
     @abstractmethod
-    def monitor(self) -> 'MonitorStream':
+    def monitor(self) -> "MonitorStream":
         """Return a MonitorStream that async-iterates payloads sent to this channel"""
 
     @abstractmethod
     async def send(self, payload: Packable):
         """send this payload to this channel"""
 
+
 class MonitorStream(metaclass=ABCMeta):
     """Async context manager and iterator that attaches to a channel and
     receives data
     """
+
     def __init__(self, transport: Transport):
         self.transport = transport
 

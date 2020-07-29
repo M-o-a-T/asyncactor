@@ -1,4 +1,3 @@
-
 #
 # Listener on top of an AsyncSerf connection
 #
@@ -6,10 +5,11 @@ from asyncactor.abc import Transport, MonitorStream
 from asyncserf import Serf
 import msgpack
 
+
 class SerfTransport(Transport):
     def __init__(self, conn: Serf, *topic):
         self.conn = conn
-        self.tag = '.'.join(topic)
+        self.tag = ".".join(topic)
 
     def monitor(self):
         return SerfMonitor(self)
@@ -19,11 +19,12 @@ class SerfTransport(Transport):
         await self.conn.event(name=self.tag, payload=payload, coalesce=False)
 
     def __repr__(self):
-        return "<Serf:%s @%r>" % (self.tag,self.conn)
+        return "<Serf:%s @%r>" % (self.tag, self.conn)
+
 
 class SerfMonitor(MonitorStream):
     async def __aenter__(self):
-        self._mon1 = self.transport.conn.stream("user:"+self.transport.tag)
+        self._mon1 = self.transport.conn.stream("user:" + self.transport.tag)
         self._mon2 = await self._mon1.__aenter__()
         return self
 
@@ -41,5 +42,6 @@ class SerfMonitor(MonitorStream):
 
     def __repr__(self):
         return "<Mon:%r>" % (self.transport,)
+
 
 Transport = SerfTransport
