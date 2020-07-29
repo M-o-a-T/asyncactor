@@ -20,14 +20,18 @@ logging.basicConfig(level=logging.INFO)
 
 N = 20
 
-def _env(s,d,f=lambda x:x):
-    es = 'MQTT_'+s.upper()
+
+def _env(s, d, f=lambda x: x):
+    es = "MQTT_" + s.upper()
     es = os.environ.get(es, None)
     Config[s] = f(es) if es is not None else d
-Config={}
-_env('host','localhost')
-_env('port',1883,int)
-Config['uri'] = f"mqtt://{Config['host']}:{Config['port']}"
+
+
+Config = {}
+_env("host", "localhost")
+_env("port", 1883, int)
+Config["uri"] = f"mqtt://{Config['host']}:{Config['port']}"
+
 
 async def read_loop(client, transport):
     while True:
@@ -35,6 +39,7 @@ async def read_loop(client, transport):
         if msg is None:
             return
         await transport.deliver(payload=msg.data)
+
 
 @pytest.mark.trio
 async def test_20_all():
@@ -49,9 +54,9 @@ async def test_20_all():
     async def s1(i, *, task_status=trio.TASK_STATUS_IGNORED):
         nonlocal tagged
         async with open_mqttclient(client_id="act_test_%d" % (i,), config=Config) as C:
-            T = get_transport('mqtt')(C, "test_20")
-            await C._tg.spawn(read_loop,C,T)
-            async with Actor(T, "c_" + str(i), cfg={"nodes": N, "gap":0.1, "cycle":1}) as k:
+            T = get_transport("mqtt")(C, "test_20")
+            await C._tg.spawn(read_loop, C, T)
+            async with Actor(T, "c_" + str(i), cfg={"nodes": N, "gap": 0.1, "cycle": 1}) as k:
                 task_status.started()
                 await k.set_value(i * 31)
                 c = 0
@@ -99,10 +104,10 @@ async def test_21_some():
 
     async def s1(i, *, task_status=trio.TASK_STATUS_IGNORED):
         async with open_mqttclient(client_id="act_test_%d" % (i,), config=Config) as C:
-            T = get_transport('mqtt')(C, "test_21")
-            await C._tg.spawn(read_loop,C,T)
+            T = get_transport("mqtt")(C, "test_21")
+            await C._tg.spawn(read_loop, C, T)
             nonlocal c
-            async with Actor(T, "c_" + str(i), cfg={"nodes": 3, "gap":0.1, "cycle":1}) as k:
+            async with Actor(T, "c_" + str(i), cfg={"nodes": 3, "gap": 0.1, "cycle": 1}) as k:
                 task_status.started()
                 await k.set_value(i * 31)
                 async for m in k:
@@ -127,4 +132,3 @@ async def test_21_some():
 
         await trio.sleep(10)
     pass  # server end
-

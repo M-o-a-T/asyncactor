@@ -1,16 +1,17 @@
 # Events for actors to send
 
 __all__ = [
-        "NodeEvent",
-        "AuthPingEvent",
-        "TagEvent",
-        "UntagEvent",
-        "DetagEvent",
-        "RawMsgEvent",
-        "PingEvent",
-        "GoodNodeEvent",
-        "RecoverEvent",
-    ]
+    "NodeEvent",
+    "AuthPingEvent",
+    "TagEvent",
+    "UntagEvent",
+    "DetagEvent",
+    "RawMsgEvent",
+    "PingEvent",
+    "GoodNodeEvent",
+    "RecoverEvent",
+]
+
 
 class NodeEvent:
     pass
@@ -41,7 +42,7 @@ class TagEvent(AuthPingEvent):
         self.value = value
 
     def __repr__(self):
-        return "<Tag %s %r>" % (self.node,self.value)
+        return "<Tag %s %r>" % (self.node, self.value)
 
 
 class UntagEvent(NodeEvent):
@@ -167,15 +168,15 @@ class SetupEvent(NodeEvent):
     """
     Parameters have been updated, most likely by the network.
     """
-    version=None
+
+    version = None
 
     def __init__(self, msg):
         for k in "version cycle gap nodes splits n_hosts".split():
             try:
-                setattr(self,k,getattr(msg,k))
+                setattr(self, k, getattr(msg, k))
             except AttributeError:
                 pass
 
     def __repr__(self):
         return "<Setup v:%s>" % (self.version,)
-

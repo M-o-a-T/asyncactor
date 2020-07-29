@@ -1,11 +1,11 @@
 # Actor message types
 
 __all__ = [
-        "Message",
-        "SetupMessage",
-        "InitMessage",
-        "PingMessage",
-        "HistoryMessage",
+    "Message",
+    "SetupMessage",
+    "InitMessage",
+    "PingMessage",
+    "HistoryMessage",
 ]
 
 
@@ -13,13 +13,17 @@ class DataError(TypeError):
     """
     Missing message data
     """
+
     pass
 
 
 _types = {}
+
+
 def _reg(cls):
     _types[cls._type] = cls
     return cls
+
 
 class Message:
     _type = None
@@ -33,8 +37,8 @@ class Message:
         return object.__new__(cls)
 
     def __init__(self, **kv):
-        for k,v in kv.items():
-            setattr(self,k,v)
+        for k, v in kv.items():
+            setattr(self, k, v)
         if self._type is None:
             raise DataError("Duh?")
 
@@ -43,20 +47,21 @@ class Message:
 
     @classmethod
     def read(cls, msg):
-        cls = _types[msg['t']]
-        assert cls.type == msg['t']
+        cls = _types[msg["t"]]
+        assert cls.type == msg["t"]
         return cls(**msg)
 
     def pack(self):
-        msg = {'t':self._type}
-        for k,v in vars(self).items():
-            if not k.startswith('_'):
-                msg[k]=v
+        msg = {"t": self._type}
+        for k, v in vars(self).items():
+            if not k.startswith("_"):
+                msg[k] = v
         return msg
 
 
 class _NodeMessage(Message):
-    node=None
+    node = None
+
     def __init__(self, **kv):
         super().__init__(**kv)
         if not self.node:
@@ -68,25 +73,27 @@ class SetupMessage(Message):
     """
     Parameters. Not clocked. Strictly rising version number.
     """
-    version:int = 0
-    cycle:float = None
-    gap:float = None
-    nodes:int = None
-    splits:int = None
-    n_hosts:int = None
-    _type='vers'
+
+    version: int = 0
+    cycle: float = None
+    gap: float = None
+    nodes: int = None
+    splits: int = None
+    n_hosts: int = None
+    _type = "vers"
 
     def verify(self):
         if self.cycle < 1:
             raise ValueError("cycle must be >= 1")
-        if self.gap < 0.:
+        if self.gap < 0.0:
             raise ValueError("gap must be >= 0.1")
-        if self.cycle < self.gap*3:
+        if self.cycle < self.gap * 3:
             raise ValueError("cycle must be >= 3*gap")
 
     def __repr__(self):
         m = super().__repr__()
-        return "%s %s%s" % (m[:-1],self.version,m[-1:])
+        return "%s %s%s" % (m[:-1], self.version, m[-1:])
+
 
 @_reg
 class InitMessage(_NodeMessage):
@@ -94,7 +101,8 @@ class InitMessage(_NodeMessage):
     Sent when a node starts up.
     MUST NOT appear twice for a given node.
     """
-    _type='init'
+
+    _type = "init"
 
 
 @_reg
@@ -102,13 +110,14 @@ class PingMessage(_NodeMessage):
     """
     Your regular actor announcement.
     """
-    _type='ping'
+
+    _type = "ping"
     value = None
-    history = () # NodeList
+    history = ()  # NodeList
 
     def __repr__(self):
         m = super().__repr__()
-        return "%s %s %s%s" % (m[:-1],self.value,':'.join(self.history), m[-1:])
+        return "%s %s %s%s" % (m[:-1], self.value, ":".join(self.history), m[-1:])
 
 
 @_reg
@@ -116,9 +125,10 @@ class HistoryMessage(Message):
     """
     Your regular actor announcement.
     """
-    _type='hist'
+
+    _type = "hist"
     value = None
-    history = () # NodeList
+    history = ()  # NodeList
 
     @property
     def node(self):
@@ -126,6 +136,4 @@ class HistoryMessage(Message):
 
     def __repr__(self):
         m = super().__repr__()
-        return "%s %s%s" % (m[:-1],':'.join(self.history), m[-1:])
-
-
+        return "%s %s%s" % (m[:-1], ":".join(self.history), m[-1:])

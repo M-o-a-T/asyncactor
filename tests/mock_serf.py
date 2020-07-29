@@ -44,17 +44,16 @@ async def stdtest(n=1, **kw):
         def __iter__(self):
             return iter(self.s)
 
-
         @asynccontextmanager
         async def client(self, i: int = 0, **kv):
             """Get a client for the i'th server."""
             t = MockTransport(tg, self, i)
             self.serfs.add(t)
             try:
-                logger.debug("C START %d",i)
+                logger.debug("C START %d", i)
                 yield t
             finally:
-                logger.debug("C STOP %d",i)
+                logger.debug("C STOP %d", i)
                 self.serfs.remove(t)
 
         def split(self, s):

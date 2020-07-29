@@ -1,4 +1,3 @@
-
 #
 # Listener on top of an MQTT connection
 #
@@ -6,7 +5,7 @@ import anyio
 from asyncactor.abc import Transport, MonitorStream
 from distmqtt.client import MQTTClient
 from distmqtt.mqtt.constants import QOS_0
-import msgpack 
+import msgpack
 
 
 class MQTTTransport(Transport):
@@ -16,9 +15,10 @@ class MQTTTransport(Transport):
     MQTT does not have channels. Thus you need to call :meth:`deliver` 
     on every incoming message that matches the topic.
     """
+
     def __init__(self, conn: MQTTClient, *topic):
         self.conn = conn
-        self.topic = '/'.join(topic)
+        self.topic = "/".join(topic)
         self._monitor = None
 
     def monitor(self):
@@ -48,7 +48,8 @@ class MQTTTransport(Transport):
         return self._monitor._q.put(payload)
 
     def __repr__(self):
-        return "<MQTT:%s @%r>" % (self.topic,self.conn)
+        return "<MQTT:%s @%r>" % (self.topic, self.conn)
+
 
 class MQTTMonitor(MonitorStream):
     def __init__(self, *a, **k):
@@ -76,5 +77,6 @@ class MQTTMonitor(MonitorStream):
 
     def __repr__(self):
         return "<Mon:%r>" % (self.transport,)
+
 
 Transport = MQTTTransport

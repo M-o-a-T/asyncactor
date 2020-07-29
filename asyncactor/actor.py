@@ -13,8 +13,8 @@ from .nodelist import *
 from .messages import *
 
 __all__ = [
-        "Actor",
-    ]
+    "Actor",
+]
 
 
 class Actor:
@@ -119,7 +119,7 @@ class Actor:
         self._recover_pings = {}
 
     def __repr__(self):
-        return "<Actor %s %r>" % (self._name,self._client)
+        return "<Actor %s %r>" % (self._name, self._client)
 
     # Accessors for config values
 
@@ -144,7 +144,6 @@ class Actor:
     @property
     def _n_hosts(self):
         return self._version.n_hosts
-
 
     @property
     def random(self):
@@ -233,6 +232,7 @@ class Actor:
                     async with anyio.fail_after(2, shield=True):
                         self._tg = None
                         await tg.cancel_scope.cancel()
+
         self._ae = work(self)
         return self._ae.__aenter__()
 
@@ -423,7 +423,7 @@ class Actor:
             return
 
         # We start off by sending a Ping. Thus our history is not empty.
-        self.logger.debug("IN : %r",msg)
+        self.logger.debug("IN : %r", msg)
 
         prev_node = self._history[0]
 
@@ -439,23 +439,27 @@ class Actor:
                 self._recover_pings[msg.node] = self._valid_pings
 
         elif type(msg) is InitMessage:
-            return # already processed
+            return  # already processed
 
         elif type(msg) is SetupMessage:
             if msg.version > self._version.version:
                 # Supersede my params
-                self.logger.debug("new V%s, have V%s", msg.version,self._version.version)
+                self.logger.debug("new V%s, have V%s", msg.version, self._version.version)
                 self._version = msg
                 await self.post_event(SetupEvent(msg))
 
             elif msg.version < self._version.version:
                 # Lower version seen: send my own version!
                 if self._tagged > 1:
-                    self.logger.debug("old V%s, have V%s, send", msg.version,self._version.version)
+                    self.logger.debug(
+                        "old V%s, have V%s, send", msg.version, self._version.version
+                    )
                     await self._send_msg(self._version)
                 else:
                     pos = hist.index(self._name)
-                    self.logger.debug("old V%s, have V%s, send% %s", msg.version,self._version.version, pos)
+                    self.logger.debug(
+                        "old V%s, have V%s, send% %s", msg.version, self._version.version, pos
+                    )
                     if pos > 0:
                         self._tg.spawn(self._send_delay_version, pos)
 
@@ -485,11 +489,7 @@ class Actor:
             # The other node is ready
             await self.post_event(
                 GoodNodeEvent(
-                    list(
-                        h
-                        for h in msg.history
-                        if self._values.get(h, None) is not None
-                    )
+                    list(h for h in msg.history if self._values.get(h, None) is not None)
                 )
             )
 
@@ -557,7 +557,7 @@ class Actor:
 
         You may use this for your own events.
         """
-        self.logger.debug("EVT: %r",event)
+        self.logger.debug("EVT: %r", event)
         await self._evt_q.put(event)
 
     def get_value(self, node):
@@ -628,8 +628,8 @@ class Actor:
         msg.history = history[0 : self._splits]  # noqa: E203
         await self._send_msg(msg)
 
-    async def _send_msg(self, msg:Message):
-        self.logger.debug("OUT: %r",msg)
+    async def _send_msg(self, msg: Message):
+        self.logger.debug("OUT: %r", msg)
         await self._client.send(msg.pack())
 
     async def _send_delay_ping(self, pos, evt, history):
@@ -646,7 +646,8 @@ class Actor:
         if (
             isinstance(ping, anyio.abc.Event)
             or isinstance(ping, int)
-            and self._nodes > 1 and ping < self._valid_pings - self._nodes / 2
+            and self._nodes > 1
+            and ping < self._valid_pings - self._nodes / 2
         ):
             if isinstance(ping, int):
                 del self._recover_pings[node]
