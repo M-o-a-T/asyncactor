@@ -12,7 +12,7 @@ class MQTTTransport(Transport):
     """
     MQTT Transport for AsyncActor.
 
-    MQTT does not have channels. Thus you need to call :meth:`deliver` 
+    MQTT does not have channels. Thus you need to call :meth:`deliver`
     on every incoming message that matches the topic.
     """
 

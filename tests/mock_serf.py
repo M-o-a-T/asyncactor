@@ -8,7 +8,6 @@ import anyio
 import mock
 import attr
 import time
-from functools import partial
 
 from asyncactor.abc import Transport, MonitorStream
 
@@ -20,7 +19,7 @@ otm = time.time
 
 
 @asynccontextmanager
-async def stdtest(n=1, **kw):
+async def stdtest(**kw):
     clock = trio.hazmat.current_clock()
     clock.autojump_threshold = 0.01
 
@@ -77,16 +76,6 @@ async def stdtest(n=1, **kw):
             ex.enter_context(mock.patch("time.time", new=tm))
             ex.enter_context(mock.patch("time.monotonic", new=tm))
             logging._startTime = tm()
-
-            class IsStarted:
-                def __init__(self, n):
-                    self.n = n
-                    self.dly = trio.Event()
-
-                def started(self, x=None):
-                    self.n -= 1
-                    if not self.n:
-                        self.dly.set()
 
             try:
                 yield st
@@ -150,4 +139,3 @@ class MockSerfStream(MonitorStream):
     def __anext__(self):
         return self.q.get()
         # logger.debug("SERF<%s< %r", self.typ, res)
-        return res

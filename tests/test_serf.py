@@ -3,7 +3,6 @@ import trio
 import os
 import time
 
-from .mock_serf import stdtest
 from asyncactor.actor import (
     Actor,
     GoodNodeEvent,
@@ -38,7 +37,6 @@ async def test_20_all():
     This test starts multiple servers at the same time and checks that all
     of them get their turn.
     """
-    N = 5
     tagged = False
     msgs = {}
 

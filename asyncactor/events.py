@@ -76,7 +76,7 @@ class RawMsgEvent(NodeEvent):
     create the actor.
 
     Arguments:
-      msg (dict): The raw data 
+      msg (dict): The raw data
     """
 
     def __init__(self, msg):

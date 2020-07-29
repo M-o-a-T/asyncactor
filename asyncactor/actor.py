@@ -3,7 +3,6 @@ import time
 from random import Random
 import os
 import logging
-from functools import partial
 from contextlib import asynccontextmanager
 
 from .abc import Transport
@@ -70,6 +69,8 @@ class Actor:
     _reader = None
     _pinger = None
     _value = None
+    _tg = None
+    _ae = None
 
     DEFAULTS = dict(cycle=10, gap=1.5, nodes=5, splits=4, n_hosts=10, version=0)
 
@@ -413,7 +414,7 @@ class Actor:
 
     async def process_msg(self, msg):
         """Process this incoming message.
-        
+
         Returns ``True`` if the message is a valid, not-superseded ping.
         """
 
@@ -456,9 +457,9 @@ class Actor:
                     )
                     await self._send_msg(self._version)
                 else:
-                    pos = hist.index(self._name)
+                    pos = self._history.index(self._name)
                     self.logger.debug(
-                        "old V%s, have V%s, send% %s", msg.version, self._version.version, pos
+                        "old V%s, have V%s, send %s", msg.version, self._version.version, pos
                     )
                     if pos > 0:
                         self._tg.spawn(self._send_delay_version, pos)
@@ -680,19 +681,18 @@ class Actor:
         or may not be in progress.
         """
         # For pos=0 this is a no-op and times out immediately
-        v = self._version.version
-        async with anyio.create_cancel_scope() as xx:
-            if self._version_job is not None:
-                await self._version_job.cancel()
-            self._version_job = xx
-            async with anyio.move_on_after(self._gap * (1 - 1 / (1 << pos))) as x:
-                await e.wait()
-            if self._version.version == v and x.cancel_called:
+        try:
+            async with anyio.open_cancel_scope() as xx:
+                if self._version_job is not None:
+                    await self._version_job.cancel()
+                self._version_job = xx
+                await anyio.sleep(self._gap * (1 - 1 / (1 << pos)))
                 # Timed out: thus, I send.
                 await self._send_msg(self._version)
 
-        if self._version_job is xx:
-            self._version_job = None
+        finally:
+            if self._version_job is xx:
+                self._version_job = None
 
     def _get_next_ping_time(self):
         t = self._time_to_next_ping()

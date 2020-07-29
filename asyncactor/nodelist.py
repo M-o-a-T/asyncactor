@@ -41,7 +41,7 @@ class NodeList(list):
     >>> n += "c"
     >>> n
     ['c', 'd']
-    >>> 
+    >>>
     """
 
     def __init__(self, maxlen, data=(), mutable=False):
