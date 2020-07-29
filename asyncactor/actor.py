@@ -91,7 +91,7 @@ class Actor:
         self._cfg.update(self.DEFAULTS)
         self._cfg.update(cfg)
 
-        self._version = SetupMessage(**self._cfg)
+        self._version = SetupMessage(node=self._name, **self._cfg)
         self._version_job = None
         self._version.verify()
         self._off_nodes = self._version.nodes

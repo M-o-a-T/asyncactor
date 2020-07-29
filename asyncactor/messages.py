@@ -69,7 +69,7 @@ class _NodeMessage(Message):
 
 
 @_reg
-class SetupMessage(Message):
+class SetupMessage(_NodeMessage):
     """
     Parameters. Not clocked. Strictly rising version number.
     """
