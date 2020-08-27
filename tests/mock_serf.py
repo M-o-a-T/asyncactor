@@ -20,7 +20,7 @@ otm = time.time
 
 @asynccontextmanager
 async def stdtest(**kw):  # pylint: disable=W0613
-    clock = trio.hazmat.current_clock()
+    clock = trio.lowlevel.current_clock()
     clock.autojump_threshold = 0.01
 
     @attr.s
