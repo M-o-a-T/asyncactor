@@ -18,7 +18,8 @@ class MQTTTransport(Transport):
 
     def __init__(self, conn: MQTTClient, *topic):
         self.conn = conn
-        self.topic = "/".join(topic)
+        self.topic = topic
+        self.tag = "/".join(topic)
         self._monitor = None
 
     def monitor(self):
@@ -36,7 +37,7 @@ class MQTTTransport(Transport):
         Send a message.
         """
         payload = msgpack.packb(payload, use_bin_type=True)
-        await self.conn.publish(self.topic, payload, QOS_0, False)
+        await self.conn.publish(self.tag, payload, QOS_0, False)
 
     def deliver(self, payload):
         """
@@ -48,7 +49,7 @@ class MQTTTransport(Transport):
         return self._monitor._q.put(payload)
 
     def __repr__(self):
-        return "<MQTT:%s @%r>" % (self.topic, self.conn)
+        return "<MQTT:%s @%r>" % (self.tag, self.conn)
 
 
 class MQTTMonitor(MonitorStream):
@@ -61,13 +62,13 @@ class MQTTMonitor(MonitorStream):
         if c._monitor is not None:
             raise RuntimeError("You can't have more than one monitor")
         c._monitor = self
-        await c.conn.subscribe([(c.topic, QOS_0)])
+        await c.conn.subscribe([(c.tag, QOS_0)])
         return self
 
     async def __aexit__(self, *tb):
         c = self.transport
         c._monitor = None
-        await c.conn.unsubscribe([c.topic])
+        await c.conn.unsubscribe([c.tag])
 
     def __aiter__(self):
         return self

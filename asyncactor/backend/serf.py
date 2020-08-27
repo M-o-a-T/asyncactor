@@ -9,6 +9,7 @@ import msgpack
 class SerfTransport(Transport):
     def __init__(self, conn: Serf, *topic):
         self.conn = conn
+        self.topic = topic
         self.tag = ".".join(topic)
 
     def monitor(self):
