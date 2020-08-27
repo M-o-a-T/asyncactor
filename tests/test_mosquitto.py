@@ -29,7 +29,7 @@ def _env(s, d, f=lambda x: x):
 Config = {}
 _env("host", "localhost")
 _env("port", 1883, int)
-Config["uri"] = f"mqtt://{Config['host']}:{Config['port']}"
+Config = {"uri": f"mqtt://{Config['host']}:{Config['port']}"}
 
 
 async def read_loop(client, transport):
