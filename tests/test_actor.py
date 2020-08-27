@@ -21,12 +21,12 @@ N = 20
 
 
 @pytest.mark.trio
-async def test_10_all(autojump_clock):
+async def test_10_all(autojump_clock):  # pylint: disable=unused-argument
     """
     This test starts multiple servers at the same time and checks that all
     of them get their turn.
     """
-    N = 5
+    N = 5  # pylint: disable=redefined-outer-name
     tagged = False
 
     async with stdtest(n=N, tocks=1000) as st:
@@ -69,12 +69,12 @@ async def test_10_all(autojump_clock):
 
 
 @pytest.mark.trio
-async def test_11_some(autojump_clock):
+async def test_11_some(autojump_clock):  # pylint: disable=unused-argument
     """
     This test starts multiple servers at the same time and checks that
     some of them are skipped.
     """
-    N = 15
+    N = 15  # pylint: disable=redefined-outer-name
 
     async with stdtest(n=N, tocks=1000) as st:
         msgs = {}
@@ -112,12 +112,12 @@ async def test_11_some(autojump_clock):
 
 @pytest.mark.trio
 @pytest.mark.parametrize("tocky", [-10, -2, -1, 0, 1, 2, 10])
-async def test_12_split1(autojump_clock, tocky):
+async def test_12_split1(autojump_clock, tocky):  # pylint: disable=unused-argument
     """
     This test starts multiple servers at the same time.
     """
     n_ping = 0
-    N = 10
+    N = 10  # pylint: disable=redefined-outer-name
 
     n_recover = [0] * N
 

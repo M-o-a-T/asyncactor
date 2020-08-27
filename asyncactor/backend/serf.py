@@ -23,13 +23,17 @@ class SerfTransport(Transport):
 
 
 class SerfMonitor(MonitorStream):
+    _mon1 = None
+    _mon2 = None
+    _it = None
+
     async def __aenter__(self):
         self._mon1 = self.transport.conn.stream("user:" + self.transport.tag)
         self._mon2 = await self._mon1.__aenter__()
         return self
 
-    def __aexit__(self, *tb):
-        return self._mon1.__aexit__(*tb)
+    async def __aexit__(self, *tb):
+        return await self._mon1.__aexit__(*tb)
 
     def __aiter__(self):
         self._it = self._mon2.__aiter__()

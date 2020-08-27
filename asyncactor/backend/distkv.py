@@ -23,6 +23,10 @@ class DistKVTransport(Transport):
 
 
 class DistKVMonitor(MonitorStream):
+    _mon1 = None
+    _mon2 = None
+    _it = None
+
     async def __aenter__(self):
         self._mon1 = self.transport.conn.monitor(*self.transport.topic)
         if hasattr(self._mon1, "__aenter__"):

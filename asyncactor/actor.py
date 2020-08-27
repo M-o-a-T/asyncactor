@@ -7,9 +7,9 @@ from contextlib import asynccontextmanager
 
 from .abc import Transport
 from .exceptions import ActorTimeoutError, ActorCollisionError
-from .events import *
-from .nodelist import *
-from .messages import *
+from .events import *  # pylint: disable=wildcard-import,unused-wildcard-import
+from .nodelist import *  # pylint: disable=wildcard-import,unused-wildcard-import
+from .messages import *  # pylint: disable=wildcard-import,unused-wildcard-import
 
 __all__ = [
     "Actor",
@@ -74,7 +74,7 @@ class Actor:
 
     DEFAULTS = dict(cycle=10, gap=1.5, nodes=5, splits=4, n_hosts=10, version=0, force_in=0)
 
-    def __init__(
+    def __init__(  # pylint: disable=dangerous-default-value
         self,
         client: Transport,
         name: str,
@@ -240,10 +240,10 @@ class Actor:
                         await tg.cancel_scope.cancel()
 
         self._ae = work(self)
-        return self._ae.__aenter__()
+        return self._ae.__aenter__()  # pylint: disable=E1101
 
     def __aexit__(self, *tb):
-        return self._ae.__aexit__(*tb)
+        return self._ae.__aexit__(*tb)  # pylint: disable=E1101
 
     def __aiter__(self):
         return self

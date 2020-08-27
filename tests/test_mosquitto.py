@@ -46,7 +46,7 @@ async def test_20_all():
     This test starts multiple servers at the same time and checks that all
     of them get their turn.
     """
-    N = 5
+    N = 5  # pylint: disable=redefined-outer-name
     tagged = False
     msgs = {}
 
@@ -94,7 +94,7 @@ async def test_21_some():
     This test starts multiple servers at the same time and checks that
     some of them are skipped.
     """
-    N = 15
+    N = 15  # pylint: disable=redefined-outer-name
 
     msgs = {}
 

@@ -19,7 +19,7 @@ otm = time.time
 
 
 @asynccontextmanager
-async def stdtest(**kw):
+async def stdtest(**kw):  # pylint: disable=W0613
     clock = trio.hazmat.current_clock()
     clock.autojump_threshold = 0.01
 
@@ -44,7 +44,7 @@ async def stdtest(**kw):
             return iter(self.s)
 
         @asynccontextmanager
-        async def client(self, i: int = 0, **kv):
+        async def client(self, i: int = 0, **kv):  # pylint: disable=W0613
             """Get a client for the i'th server."""
             t = MockTransport(tg, self, i)
             self.serfs.add(t)
@@ -136,6 +136,6 @@ class MockSerfStream(MonitorStream):
         self.q = anyio.create_queue(100)
         return self
 
-    def __anext__(self):
-        return self.q.get()
+    async def __anext__(self):
+        return await self.q.get()
         # logger.debug("SERF<%s< %r", self.typ, res)

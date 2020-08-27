@@ -72,8 +72,8 @@ class MQTTMonitor(MonitorStream):
     def __aiter__(self):
         return self
 
-    def __anext__(self):
-        return self._q.get()
+    async def __anext__(self):
+        return await self._q.get()
 
     def __repr__(self):
         return "<Mon:%r>" % (self.transport,)
