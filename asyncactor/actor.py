@@ -72,7 +72,7 @@ class Actor:
     _tg = None
     _ae = None
 
-    DEFAULTS = dict(cycle=10, gap=1.5, nodes=5, splits=4, n_hosts=10, version=0)
+    DEFAULTS = dict(cycle=10, gap=1.5, nodes=5, splits=4, n_hosts=10, version=0, force_in=0)
 
     def __init__(
         self,
@@ -118,6 +118,7 @@ class Actor:
 
         self._next_ping_time = 0
         self._recover_pings = {}
+        self._count_not_on = 0
 
     def __repr__(self):
         return "<Actor %s %r>" % (self._name, self._client)
@@ -145,6 +146,10 @@ class Actor:
     @property
     def _n_hosts(self):
         return self._version.n_hosts
+
+    @property
+    def _force_in(self):
+        return self._version.force_in
 
     @property
     def random(self):
@@ -330,6 +335,7 @@ class Actor:
                         t = self._gap * 1.5
 
                         await self.post_event(UntagEvent())
+                        self._count_not_on = 0
                         self._tagged = 0
 
                     else:
@@ -355,6 +361,7 @@ class Actor:
             if await self.process_msg(msg):
                 if self._tagged == 3:
                     await self.post_event(UntagEvent())
+                    self._count_not_on = 0
                 self._tagged = 0
 
     async def update_config(self, cfg):
@@ -391,6 +398,7 @@ class Actor:
         self._tagged = 0
         self._history.clear()
         self._history.maxlen = self._nodes
+        self._count_not_on = 1
         await self._send_ping()
 
     async def disable(self, length=0):
@@ -769,15 +777,27 @@ class Actor:
             # interlopers, below. Otherwise we could divide by l-1, as
             # l must be at least 2. s must also be at least 1.
 
+        if self._force_in:
+            # this is an actor that needs every participant to be on the chain.
+            # Thus try harder to make that happen.
+            if self._count_not_on >= total:
+                return self.random / 4
+            elif self.random > (self._count_not_on - 1) / total:
+                return 0.5 + self.random / 2
+            else:
+                return self.random / 2
+
         if todo > 0:
-            # the chain is too short. Try harder to get onto it.
+            # the chain is too short. Try somewhat harder to get onto it.
 
             # This is mockable for testing
             if self._skip_check():
                 return 0
             f = todo
         else:
+            self._count_not_on += 1
             f = total
+
         if self.random < 1 / f / total:
             # send early (try getting onto the chain)
             return self.random / 3
