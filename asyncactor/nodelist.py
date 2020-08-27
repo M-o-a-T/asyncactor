@@ -65,7 +65,7 @@ class NodeList(list):
         except ValueError:
             i = -1
         if mutable:
-            self = type(self)(self.maxlen, self, mutable=self._mutable)
+            self = type(self)(self.maxlen, self, mutable=self._mutable)  # pylint: disable=W0642
 
         if i >= 0:
             self.pop(i)

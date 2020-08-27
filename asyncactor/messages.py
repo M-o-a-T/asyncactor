@@ -29,7 +29,7 @@ class Message:
     _type = None
     node = None  # must exist
 
-    def __new__(cls, t=None, **kv):
+    def __new__(cls, t=None, **kv):  # pylint:disable=unused-argument
         if cls is Message:
             return object.__new__(_types[t])
         elif t is not None and cls._type != t:
@@ -47,7 +47,7 @@ class Message:
 
     @classmethod
     def read(cls, msg):
-        cls = _types[msg["t"]]
+        cls = _types[msg["t"]]  # pylint:disable=self-cls-assignment
         assert cls.type == msg["t"]
         return cls(**msg)
 

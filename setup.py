@@ -45,7 +45,7 @@ setup(
     packages=find_packages(),
     install_requires=["msgpack >= 0.5.0", "anyio >= 1.0.0", "outcome", "attrs >= 18.1"],
     extras_require={":python_version < '3.7'": ["async_generator", "async_exit_stack"]},
-    tests_require=["pytest >= 2.5.2", "pytest-cov >= 2.3", "trio >= 0.11"],
+    tests_require=["pytest >= 2.5.2", "pytest-cov >= 2.3", "trio >= 0.15", "distmqtt >= 0.30"],
     cmdclass={"test": PyTest},
     python_requires=">=3.6",
 )

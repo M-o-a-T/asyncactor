@@ -83,7 +83,7 @@ async def test_21_some():
     This test starts multiple servers at the same time and checks that
     some of them are skipped.
     """
-    N = 15
+    N = 15  # pylint: disable=redefined-outer-name
 
     msgs = {}
 
