@@ -65,7 +65,7 @@ class _NodeMessage(Message):
     def __init__(self, **kv):
         super().__init__(**kv)
         if not self.node:
-            raise DataError("")
+            raise DataError("No node?")
 
 
 @_reg
