@@ -465,11 +465,14 @@ class Actor:
                     )
                     await self._send_msg(self._version)
                 else:
-                    pos = self._history.index(self._name)
-                    self.logger.debug(
-                        "old V%s, have V%s, send %s", msg.version, self._version.version, pos
-                    )
-                    if pos > 0:
+                    try:
+                        pos = self._history.index(self._name)
+                    except ValueError:
+                        pass
+                    else:
+                        self.logger.debug(
+                            "old V%s, have V%s, send %s", msg.version, self._version.version, pos
+                        )
                         self._tg.spawn(self._send_delay_version, pos)
 
             elif self._version_job is not None:
