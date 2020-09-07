@@ -19,6 +19,10 @@ class DataError(TypeError):
 
 _types = {}
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def _reg(cls):
     _types[cls._type] = cls
@@ -65,7 +69,7 @@ class _NodeMessage(Message):
     def __init__(self, **kv):
         super().__init__(**kv)
         if not self.node:
-            logger.error("No node: %r",kv)
+            logger.error("No node: %r", kv)
 
 
 @_reg
