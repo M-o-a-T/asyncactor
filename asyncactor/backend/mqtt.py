@@ -1,10 +1,10 @@
 #
 # Listener on top of an MQTT connection
 #
-import anyio
 from asyncactor.abc import Transport, MonitorStream
 from distmqtt.client import MQTTClient
 from distmqtt.mqtt.constants import QOS_0
+from distmqtt.utils import create_queue
 import msgpack
 
 
@@ -55,7 +55,7 @@ class MQTTTransport(Transport):
 class MQTTMonitor(MonitorStream):
     def __init__(self, *a, **k):
         super().__init__(*a, **k)
-        self._q = anyio.create_queue(1)
+        self._q = create_queue(1)
 
     async def __aenter__(self):
         c = self.transport

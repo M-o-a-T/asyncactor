@@ -8,6 +8,7 @@ import anyio
 import mock
 import attr
 import time
+from distmqtt.utils import create_queue
 
 from asyncactor.abc import Transport, MonitorStream
 
@@ -123,7 +124,7 @@ class MockSerfStream(MonitorStream):
     async def __aenter__(self):
         logger.debug("SERF:MON START")
         assert self.q is None
-        self.q = anyio.create_queue(100)
+        self.q = create_queue(100)
         self.transport.streams.add(self)
         return self
 
@@ -133,7 +134,7 @@ class MockSerfStream(MonitorStream):
         self.q = None
 
     def __aiter__(self):
-        self.q = anyio.create_queue(100)
+        self.q = create_queue(100)
         return self
 
     async def __anext__(self):
