@@ -11,6 +11,8 @@ from .events import *  # pylint: disable=wildcard-import,unused-wildcard-import
 from .nodelist import *  # pylint: disable=wildcard-import,unused-wildcard-import
 from .messages import *  # pylint: disable=wildcard-import,unused-wildcard-import
 
+from distmqtt.utils import create_queue
+
 __all__ = [
     "Actor",
 ]
@@ -97,9 +99,9 @@ class Actor:
         self._off_nodes = self._version.nodes
         self._self_seen = False
 
-        self._evt_q = anyio.create_queue(1)
-        self._rdr_q = anyio.create_queue(99)
-        self._ping_q = anyio.create_queue(1)
+        self._evt_q = create_queue(1)
+        self._rdr_q = create_queue(99)
+        self._ping_q = create_queue(1)
         self._ready = False
         self._tagged = 0 if enabled else -1  # >0: "our" tag is progressing
         self._valid_pings = 0
