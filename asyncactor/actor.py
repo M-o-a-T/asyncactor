@@ -17,6 +17,24 @@ __all__ = [
     "Actor",
 ]
 
+async def spawn(taskgroup, proc, *args, **kw):
+    """
+    Run a task within this object's task group.
+
+    Returns:
+        a cancel scope you can use to stop the task.
+    """
+
+    async def _run(proc, args, kw, *, task_status):
+        """
+        Helper for starting a task within a cancel scope.
+        """
+        with anyio.CancelScope() as sc:
+            task_status.started(sc)
+            await proc(*args, **kw)
+
+    return await taskgroup.start(_run, proc, args, kw)
+
 
 class Actor:
     """
@@ -215,7 +233,7 @@ class Actor:
         """
         while True:
             msg = await self._ping_q.get()
-            async with anyio.move_on_after(self._gap * 2):
+            with anyio.move_on_after(self._gap * 2):
                 while True:
                     msg = await self._ping_q.get()
             if self._tagged <= 0:
@@ -229,17 +247,17 @@ class Actor:
                 raise RuntimeError("You can't enter me twice")
             async with anyio.create_task_group() as tg:
                 try:
-                    evt = anyio.create_event()
+                    evt = anyio.Event()
                     self._tg = tg
-                    self._reader = await tg.spawn(self.read_task, evt)
+                    self._reader = await spawn(tg, self.read_task, evt)
                     await evt.wait()
-                    self._worker = await tg.spawn(self._run)
-                    self._pinger = await tg.spawn(self._ping)
+                    self._worker = await spawn(tg, self._run)
+                    self._pinger = await spawn(tg, self._ping)
                     yield self
                 finally:
-                    async with anyio.fail_after(2, shield=True):
+                    with anyio.fail_after(2, shield=True):
                         self._tg = None
-                        await tg.cancel_scope.cancel()
+                        tg.cancel_scope.cancel()
 
         self._ae = work(self)
         return self._ae.__aenter__()  # pylint: disable=E1101
@@ -278,7 +296,7 @@ class Actor:
         """
         async with self._client.monitor() as mon:
             self.logger.debug("start listening")
-            await evt.set()
+            evt.set()
             async for msg in mon:
                 await self.queue_msg(msg)
 
@@ -347,7 +365,7 @@ class Actor:
                 t = t_left
 
             msg = None
-            async with anyio.move_on_after(t):
+            with anyio.move_on_after(t):
                 msg = await self._rdr_q.get()
 
             if msg is None:
@@ -443,7 +461,7 @@ class Actor:
             ping = self._recover_pings.get(msg.node, None)
             if isinstance(ping, anyio.abc.Event):
                 # We're waiting for this.
-                await ping.set()
+                ping.set()
             else:
                 # This ping is not expected, but it might have arrived before its cause.
                 # Record that fact so that we don't also send it.
@@ -475,11 +493,11 @@ class Actor:
                         self.logger.debug(
                             "old V%s, have V%s, send %s", msg.version, self._version.version, pos
                         )
-                        await self._tg.spawn(self._send_delay_version, pos)
+                        self._tg.spawn(self._send_delay_version, pos)
 
             elif self._version_job is not None:
                 self.logger.debug("cancel V%s", msg.version)
-                await self._version_job.cancel()
+                self._version_job.cancel()
                 self._version_job = None
             return
 
@@ -555,8 +573,8 @@ class Actor:
                     h += msg.node
                 await self.post_event(RecoverEvent(pos, prefer_new, hist, h))
 
-                evt = anyio.create_event()
-                await self._tg.spawn(self._send_delay_ping, pos, evt, hist)
+                evt = anyio.Event()
+                self._tg.spawn(self._send_delay_ping, pos, evt, hist)
                 await evt.wait()
 
         return prefer_new
@@ -665,13 +683,13 @@ class Actor:
         ):
             if isinstance(ping, int):
                 del self._recover_pings[node]
-            await evt.set()
+            evt.set()
             return
-        self._recover_pings[node] = e = anyio.create_event()
-        await evt.set()
+        self._recover_pings[node] = e = anyio.Event()
+        evt.set()
 
         # For pos=0 this is a no-op and times out immediately
-        async with anyio.move_on_after(self._gap * (1 - 1 / (1 << pos))) as x:
+        with anyio.move_on_after(self._gap * (1 - 1 / (1 << pos))) as x:
             await e.wait()
         if self._recover_pings.get(node, None) is not e:
             # I have been superseded.
@@ -697,7 +715,7 @@ class Actor:
         try:
             async with anyio.open_cancel_scope() as xx:
                 if self._version_job is not None:
-                    await self._version_job.cancel()
+                    self._version_job.cancel()
                 self._version_job = xx
                 await anyio.sleep(self._gap * (1 - 1 / (1 << pos)))
                 # Timed out: thus, I send.

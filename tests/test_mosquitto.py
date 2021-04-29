@@ -50,11 +50,11 @@ async def test_20_all():
     tagged = False
     msgs = {}
 
-    async def s1(i, *, task_status=trio.TASK_STATUS_IGNORED):
+    async def s1(i, *, task_status):
         nonlocal tagged
         async with open_mqttclient(client_id="act_test_%d" % (i,), config=Config) as C:
             T = get_transport("mqtt")(C, "test_20")
-            await C._tg.spawn(read_loop, C, T)
+            C._tg.start_soon(read_loop, C, T)
             async with Actor(T, "c_" + str(i), cfg={"nodes": N, "gap": 0.1, "cycle": 1}) as k:
                 task_status.started()
                 await k.set_value(i * 31)
@@ -101,10 +101,10 @@ async def test_21_some():
     c = 0
     h = [0] * (N + 1)
 
-    async def s1(i, *, task_status=trio.TASK_STATUS_IGNORED):
+    async def s1(i, *, task_status):
         async with open_mqttclient(client_id="act_test_%d" % (i,), config=Config) as C:
             T = get_transport("mqtt")(C, "test_21")
-            await C._tg.spawn(read_loop, C, T)
+            C._tg.start_soon(read_loop, C, T)
             nonlocal c
             async with Actor(T, "c_" + str(i), cfg={"nodes": 3, "gap": 0.1, "cycle": 1}) as k:
                 task_status.started()

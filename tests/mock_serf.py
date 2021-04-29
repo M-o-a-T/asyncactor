@@ -81,9 +81,9 @@ async def stdtest(**kw):  # pylint: disable=W0613
             try:
                 yield st
             finally:
-                async with anyio.fail_after(2, shield=True):
+                with anyio.fail_after(2, shield=True):
                     logger.info("Runtime: %s", clock.current_time())
-                    await tg.cancel_scope.cancel()
+                    tg.cancel_scope.cancel()
         logger.info("End")
         pass  # unwinding ex:AsyncExitStack
 
