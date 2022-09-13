@@ -19,7 +19,7 @@ assume one second). Assume further that you'd like to know within ten
 seconds whether your node is still online.
 
 AsyncActor sends one beacon message every seven to nine seconds. The message
-includes a list of N previous hosts who have transmitted the beacon; the
+includes a list of N previous hosts that have transmitted the beacon; the
 host that's last in this list will be the next transmitter.
 
 The time slot starting at the seven-second mark is used for random hosts
