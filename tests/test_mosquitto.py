@@ -13,7 +13,7 @@ from asyncactor.actor import (
 from asyncactor.backend import get_transport
 
 import logging
-from distmqtt.client import open_mqttclient
+from moat.mqtt.client import open_mqttclient
 
 logging.basicConfig(level=logging.INFO)
 

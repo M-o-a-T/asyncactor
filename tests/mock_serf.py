@@ -8,7 +8,7 @@ import anyio
 import mock
 import attr
 import time
-from distmqtt.utils import create_queue
+from moat.util import create_queue
 
 from asyncactor.abc import Transport, MonitorStream
 
