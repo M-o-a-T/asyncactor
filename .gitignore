@@ -49,3 +49,4 @@ coverage.xml
 
 # local stuff
 /T
+/debian/
