@@ -2,9 +2,9 @@
 # Listener on top of an MQTT connection
 #
 from asyncactor.abc import Transport, MonitorStream
-from distmqtt.client import MQTTClient
-from distmqtt.mqtt.constants import QOS_0
-from distmqtt.utils import create_queue
+from moat.util import create_queue
+from moat.mqtt.client import MQTTClient
+from moat.mqtt.mqtt.constants import QOS_0
 import msgpack
 
 

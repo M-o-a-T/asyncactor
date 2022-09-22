@@ -11,7 +11,7 @@ from .events import *  # pylint: disable=wildcard-import,unused-wildcard-import
 from .nodelist import *  # pylint: disable=wildcard-import,unused-wildcard-import
 from .messages import *  # pylint: disable=wildcard-import,unused-wildcard-import
 
-from distmqtt.utils import create_queue
+from moat.util import create_queue
 
 __all__ = [
     "Actor",
@@ -493,7 +493,7 @@ class Actor:
                         self.logger.debug(
                             "old V%s, have V%s, send %s", msg.version, self._version.version, pos
                         )
-                        self._tg.spawn(self._send_delay_version, pos)
+                        self._tg.start_soon(self._send_delay_version, pos)
 
             elif self._version_job is not None:
                 self.logger.debug("cancel V%s", msg.version)
@@ -574,7 +574,7 @@ class Actor:
                 await self.post_event(RecoverEvent(pos, prefer_new, hist, h))
 
                 evt = anyio.Event()
-                self._tg.spawn(self._send_delay_ping, pos, evt, hist)
+                self._tg.start_soon(self._send_delay_ping, pos, evt, hist)
                 await evt.wait()
 
         return prefer_new
