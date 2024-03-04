@@ -1,3 +1,9 @@
+asyncactor (0.24.0.2) unstable; urgency=medium
+
+  * Fix ancient dependency
+
+ -- Matthias Urlichs <matthias@urlichs.de>  Mon, 04 Mar 2024 22:04:26 +0100
+
 asyncactor (0.24.0.1) unstable; urgency=medium
 
   * Merge

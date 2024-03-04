@@ -16,8 +16,7 @@ Depends: ${misc:Depends}, ${python3:Depends},
   python3-trio,
   python3-anyio,
 Recommends:
-  python3-distmqtt,
-  python3-asyncserf (>> 0.16),
+  moat-mqtt,
 Description: Orchestrator on top of unreliable message massing
   AsyncActor is an async Python module that aids in service discovery and
   "somewhat-leader" election in a heterogenous, sometimes-disconnected network
