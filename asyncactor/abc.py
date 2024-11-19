@@ -1,6 +1,7 @@
 """
 Abstract classes for the underlying transport
 """
+
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
@@ -9,7 +10,15 @@ import trio
 from typing import Union
 
 Packable = Union[
-    str, bytes, bool, type(None), int, float, dict[str|int, "Packable"], tuple["Packable"], list["Packable"]
+    str,
+    bytes,
+    bool,
+    type(None),
+    int,
+    float,
+    dict[str | int, "Packable"],
+    tuple["Packable"],
+    list["Packable"],
 ]
 
 

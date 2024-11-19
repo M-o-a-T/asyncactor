@@ -47,7 +47,10 @@ class Message:
             raise DataError("Duh?")
 
     def __repr__(self):
-        return "<%sMsg %s>" % (self._type, self.node,)
+        return "<%sMsg %s>" % (
+            self._type,
+            self.node,
+        )
 
     @classmethod
     def read(cls, msg):

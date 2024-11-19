@@ -22,6 +22,7 @@ __all__ = [
     "Actor",
 ]
 
+
 async def spawn(taskgroup, proc, *args, **kw):
     """
     Run a task within this object's task group.
@@ -315,8 +316,7 @@ class Actor(CtxObj):
         await self._rdr_q.put(msg)
 
     async def _run(self):
-        """
-        """
+        """ """
         await self._send_msg(InitMessage(node=self._name))
         await self._send_msg(self._version)
 

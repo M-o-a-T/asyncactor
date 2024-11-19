@@ -1,6 +1,7 @@
 """
 Listener on top of an async mqttproto connection
 """
+
 from __future__ import annotations
 
 from asyncactor.abc import Transport, MonitorStream
@@ -44,7 +45,7 @@ class MQTTPTransport(Transport):
 
 class MQTTMonitor(MonitorStream, CtxObj):
     async def _ctx(self):
-        c=self.transport
+        c = self.transport
         async with c.conn.subscribe(c.tag, maximum_qos=QoS.AT_LEAST_ONCE) as mon:
             self._it = aiter(mon)
             try:

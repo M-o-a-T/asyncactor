@@ -22,10 +22,12 @@ N = 20
 
 Config = {}
 
+
 def _env(s, d, f=lambda x: x):
     es = "MQTT_" + s.upper()
     es = os.environ.get(es, None)
     Config[s] = f(es) if es is not None else d
+
 
 _env("host", "localhost")
 _env("port", 1883, int)
@@ -43,7 +45,9 @@ async def test_20_all():
 
     async def s1(i, *, task_status):
         nonlocal tagged
-        async with AsyncMQTTClient(Config["host"], Config["port"], client_id="act_test_%d" % (i,)) as C:
+        async with AsyncMQTTClient(
+            Config["host"], Config["port"], client_id="act_test_%d" % (i,)
+        ) as C:
             T = get_transport("mqttproto")(C, "test_20")
             async with Actor(T, "c_" + str(i), cfg={"nodes": N, "gap": 0.1, "cycle": 1}) as k:
                 task_status.started()
@@ -92,7 +96,9 @@ async def test_21_some():
     h = [0] * (N + 1)
 
     async def s1(i, *, task_status):
-        async with AsyncMQTTClient(Config["host"], Config["port"], client_id="act_test_%d" % (i,)) as C:
+        async with AsyncMQTTClient(
+            Config["host"], Config["port"], client_id="act_test_%d" % (i,)
+        ) as C:
             T = get_transport("mqttproto")(C, "test_21")
             nonlocal c
             async with Actor(T, "c_" + str(i), cfg={"nodes": 3, "gap": 0.1, "cycle": 1}) as k:
