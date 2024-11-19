@@ -54,7 +54,7 @@ class NodeList(list):
 
         This shortens the list by one if you replace a node that's not
         at the end (if maxlen is >0). The effect is that nodes are removed
-        from the end gradually. Thi sis useful when a network split results
+        from the end gradually. This is useful when a network split results
         in stale nodes.
         """
         if mutable is None:

@@ -1,9 +1,14 @@
+"""
+The main Actor module.
+"""
+
+from __future__ import annotations
+
 import anyio
 import time
 from random import Random
 import os
 import logging
-from contextlib import asynccontextmanager
 
 from .abc import Transport
 from .exceptions import ActorTimeoutError, ActorCollisionError
@@ -11,7 +16,7 @@ from .events import *  # pylint: disable=wildcard-import,unused-wildcard-import
 from .nodelist import *  # pylint: disable=wildcard-import,unused-wildcard-import
 from .messages import *  # pylint: disable=wildcard-import,unused-wildcard-import
 
-from moat.util import create_queue
+from moat.util import create_queue, CtxObj
 
 __all__ = [
     "Actor",
@@ -36,7 +41,7 @@ async def spawn(taskgroup, proc, *args, **kw):
     return await taskgroup.start(_run, proc, args, kw)
 
 
-class Actor:
+class Actor(CtxObj):
     """
     Some jobs need a single controller so that tasks don't step on each other's
     toes.
@@ -57,7 +62,7 @@ class Actor:
       name (str): This node's name. **Must** be unambiguous.
       cfg (dict): a dict containing additional configuration values.
       enabled (bool): if False, start the actor in passive monitoring mode.
-      send_raw (bool): flag whether to send raw-message events (debugging)
+      send_raw (bool): flag whether to forward raw-message events (debugging)
 
     The config dict may contain these values.
 
@@ -240,30 +245,21 @@ class Actor:
                 self._valid_pings += 1
                 await self.post_event(PingEvent(msg))
 
-    def __aenter__(self):
-        @asynccontextmanager
-        async def work(self):
-            if self._worker is not None or self._reader is not None:
-                raise RuntimeError("You can't enter me twice")
-            async with anyio.create_task_group() as tg:
-                try:
-                    evt = anyio.Event()
-                    self._tg = tg
-                    self._reader = await spawn(tg, self.read_task, evt)
-                    await evt.wait()
-                    self._worker = await spawn(tg, self._run)
-                    self._pinger = await spawn(tg, self._ping)
-                    yield self
-                finally:
-                    with anyio.fail_after(2, shield=True):
-                        self._tg = None
-                        tg.cancel_scope.cancel()
+    async def _ctx(self):
+        async with anyio.create_task_group() as tg:
+            try:
+                evt = anyio.Event()
+                self._tg = tg
+                self._reader = await spawn(tg, self.read_task, evt)
 
-        self._ae = work(self)
-        return self._ae.__aenter__()  # pylint: disable=E1101
-
-    def __aexit__(self, *tb):
-        return self._ae.__aexit__(*tb)  # pylint: disable=E1101
+                await evt.wait()
+                self._worker = await spawn(tg, self._run)
+                self._pinger = await spawn(tg, self._ping)
+                yield self
+            finally:
+                with anyio.fail_after(2, shield=True):
+                    self._tg = None
+                    tg.cancel_scope.cancel()
 
     def __aiter__(self):
         return self
