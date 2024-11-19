@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
 
-import trio
+import anyio
 
 from typing import TYPE_CHECKING, Union
 
@@ -43,7 +43,7 @@ class Transport(metaclass=ABCMeta):
     async def send(self, payload: Packable):
         """send this payload to this channel"""
 
-    async def receiver(self, *, task_status=trio.TASK_STATUS_IGNORED):
+    async def receiver(self, *, task_status=anyio.TASK_STATUS_IGNORED):
         """
         A dummy receiver which the transport may override,
         otherwise it's the client's job

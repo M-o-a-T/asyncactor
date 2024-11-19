@@ -38,7 +38,7 @@ repository = "https://github.com/smurfix/asyncactor.git"
 moat_kv = [ "moat-kv",]
 moat_link = [ "moat-link",]
 mqtt = [ "mqttproto",]
-dev = ["pytest >= 2.5.2", "pytest-cov >= 2.3", "trio >= 0.23", "moat-mqtt", "mqttproto",]
+dev = ["pytest >= 2.5.2", "pytest-cov >= 2.3", "moat-mqtt", "mqttproto", "pytest-trio", "trio >= 0.23"]
 
 [tool.ruff]
 preview = true
@@ -98,7 +98,7 @@ envlist = py310,check
 setenv = 
     PYTHONPATH = {env:PYTHONPATH}{:}{toxinidir}
 deps = 
-    trio
+    anyio
     pytest
 commands = 
     python3 -mpytest tests/

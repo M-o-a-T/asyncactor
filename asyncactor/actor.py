@@ -140,13 +140,7 @@ class Actor(CtxObj):
         self._values = {}  # map names to steps
         self._history = NodeList(self._nodes)  # those in the loop
         self._prev_history = None
-        rs = os.environ.get("PYTHONHASHSEED", None)
-        if rs is None:
-            self._rand = Random()  # noqa:S311
-        else:
-            import trio._core._run as tcr
-
-            self._rand = tcr._r  # noqa:SLF001
+        self._rand = Random()  # noqa:S311
 
         self._next_ping_time = 0
         self._recover_pings = {}
