@@ -15,12 +15,14 @@ from asyncactor.actor import (
 from asyncactor.backend import get_transport
 
 import trio
-
-from moat.mqtt.client import open_mqttclient
+from mqttproto.async_client import AsyncMQTTClient
 
 logging.basicConfig(level=logging.INFO)
 
 N = 20
+
+
+Config = {}
 
 
 def _env(s, d, f=lambda x: x):
@@ -29,18 +31,8 @@ def _env(s, d, f=lambda x: x):
     Config[s] = f(es) if es is not None else d
 
 
-Config = {}
 _env("host", "localhost")
 _env("port", 1883, int)
-Config = {"uri": f"mqtt://{Config['host']}:{Config['port']}"}
-
-
-async def read_loop(client, transport):
-    while True:
-        msg = await client.deliver_message()
-        if msg is None:
-            return
-        await transport.deliver(payload=msg.data)
 
 
 @pytest.mark.trio
@@ -55,9 +47,10 @@ async def test_20_all():
 
     async def s1(i, *, task_status):
         nonlocal tagged
-        async with open_mqttclient(client_id="act_test_%d" % (i,), config=Config) as C:
-            T = get_transport("mqtt")(C, "test_20")
-            C._tg.start_soon(read_loop, C, T)
+        async with AsyncMQTTClient(
+            Config["host"], Config["port"], client_id="act_test_%d" % (i,)
+        ) as C:
+            T = get_transport("mqttproto")(C, "test_20")
             async with Actor(T, "c_" + str(i), cfg={"nodes": N, "gap": 0.1, "cycle": 1}) as k:
                 task_status.started()
                 await k.set_value(i * 31)
@@ -105,9 +98,10 @@ async def test_21_some():
     h = [0] * (N + 1)
 
     async def s1(i, *, task_status):
-        async with open_mqttclient(client_id="act_test_%d" % (i,), config=Config) as C:
-            T = get_transport("mqtt")(C, "test_21")
-            C._tg.start_soon(read_loop, C, T)
+        async with AsyncMQTTClient(
+            Config["host"], Config["port"], client_id="act_test_%d" % (i,)
+        ) as C:
+            T = get_transport("mqttproto")(C, "test_21")
             nonlocal c
             async with Actor(T, "c_" + str(i), cfg={"nodes": 3, "gap": 0.1, "cycle": 1}) as k:
                 task_status.started()

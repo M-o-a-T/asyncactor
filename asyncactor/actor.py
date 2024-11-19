@@ -1,21 +1,40 @@
+"""
+The main Actor module.
+"""
+
+from __future__ import annotations
+
 import anyio
+import logging
+import os
 import time
 from random import Random
-import os
-import logging
-from contextlib import asynccontextmanager
 
-from .abc import Transport
-from .exceptions import ActorTimeoutError, ActorCollisionError
-from .events import *  # pylint: disable=wildcard-import,unused-wildcard-import
-from .nodelist import *  # pylint: disable=wildcard-import,unused-wildcard-import
-from .messages import *  # pylint: disable=wildcard-import,unused-wildcard-import
+from moat.util import CtxObj, create_queue
 
-from moat.util import create_queue
+from .events import (
+    DetagEvent,
+    GoodNodeEvent,
+    PingEvent,
+    RawMsgEvent,
+    RecoverEvent,
+    SetupEvent,
+    TagEvent,
+    UntagEvent,
+)
+from .exceptions import ActorCollisionError, ActorTimeoutError
+from .messages import HistoryMessage, InitMessage, Message, PingMessage, SetupMessage
+from .nodelist import NodeList
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .abc import Transport
 
 __all__ = [
     "Actor",
 ]
+
 
 async def spawn(taskgroup, proc, *args, **kw):
     """
@@ -36,7 +55,7 @@ async def spawn(taskgroup, proc, *args, **kw):
     return await taskgroup.start(_run, proc, args, kw)
 
 
-class Actor:
+class Actor(CtxObj):
     """
     Some jobs need a single controller so that tasks don't step on each other's
     toes.
@@ -57,7 +76,7 @@ class Actor:
       name (str): This node's name. **Must** be unambiguous.
       cfg (dict): a dict containing additional configuration values.
       enabled (bool): if False, start the actor in passive monitoring mode.
-      send_raw (bool): flag whether to send raw-message events (debugging)
+      send_raw (bool): flag whether to forward raw-message events (debugging)
 
     The config dict may contain these values.
 
@@ -92,28 +111,21 @@ class Actor:
     _tg = None
     _ae = None
 
-    DEFAULTS = dict(cycle=10, gap=1.5, nodes=5, splits=4, n_hosts=10, version=0, force_in=0)
-
     def __init__(  # pylint: disable=dangerous-default-value
         self,
         client: Transport,
         name: str,
-        cfg: dict = {},
+        cfg: dict | None = None,
         *,
         enabled: bool = True,
         send_raw: bool = False,
     ):
         self._client = client
         self._name = name
-        self.logger = logging.getLogger("asyncactor.%s.%s" % (self._name, client.topic[-1]))
+        self.logger = logging.getLogger(f"asyncactor.{self._name}.{client.topic[-1]}")
 
-        self._cfg = {}
-        self._cfg.update(self.DEFAULTS)
-        self._cfg.update(cfg)
-
-        self._version = SetupMessage(node=self._name, **self._cfg)
+        self._version = SetupMessage(node=self._name, **(cfg or {}))
         self._version_job = None
-        self._version.verify()
         self._off_nodes = self._version.nodes
         self._self_seen = False
 
@@ -130,45 +142,51 @@ class Actor:
         self._prev_history = None
         rs = os.environ.get("PYTHONHASHSEED", None)
         if rs is None:
-            self._rand = Random()
+            self._rand = Random()  # noqa:S311
         else:
             import trio._core._run as tcr
 
-            self._rand = tcr._r
+            self._rand = tcr._r  # noqa:SLF001
 
         self._next_ping_time = 0
         self._recover_pings = {}
         self._count_not_on = 0
 
     def __repr__(self):
-        return "<Actor %s %r>" % (self._name, self._client)
+        return f"<Actor {self._name} {self._client!r}>"
 
     # Accessors for config values
 
     @property
-    def _cycle(self):
+    def _cycle(self) -> float:
+        "'cycle' from config"
         return self._version.cycle
 
     @property
-    def _gap(self):
+    def _gap(self) -> float:
+        "'gap' from config"
         return self._version.gap
 
     @property
-    def _nodes(self):
+    def _nodes(self) -> int:
+        "'nodes' from config"
         if self._tagged < 0:
             return self._off_nodes
         return self._version.nodes
 
     @property
-    def _splits(self):
+    def _splits(self) -> int:
+        "'splits' from config"
         return self._version.splits
 
     @property
-    def _n_hosts(self):
+    def _n_hosts(self) -> int:
+        "'n_hosts' from config"
         return self._version.n_hosts
 
     @property
-    def _force_in(self):
+    def _force_in(self) -> bool:
+        "'force_in' from config"
         return self._version.force_in
 
     @property
@@ -178,10 +196,12 @@ class Actor:
 
     @property
     def name(self):
+        "my name"
         return self._name
 
     @property
     def cycle_time(self):
+        "'cycle' from config"
         return self._cycle
 
     @property
@@ -240,30 +260,20 @@ class Actor:
                 self._valid_pings += 1
                 await self.post_event(PingEvent(msg))
 
-    def __aenter__(self):
-        @asynccontextmanager
-        async def work(self):
-            if self._worker is not None or self._reader is not None:
-                raise RuntimeError("You can't enter me twice")
-            async with anyio.create_task_group() as tg:
-                try:
-                    evt = anyio.Event()
-                    self._tg = tg
-                    self._reader = await spawn(tg, self.read_task, evt)
-                    await evt.wait()
-                    self._worker = await spawn(tg, self._run)
-                    self._pinger = await spawn(tg, self._ping)
-                    yield self
-                finally:
-                    with anyio.fail_after(2, shield=True):
-                        self._tg = None
-                        tg.cancel_scope.cancel()
+    async def _ctx(self):
+        async with anyio.create_task_group() as tg:
+            try:
+                evt = anyio.Event()
+                self._tg = tg
+                self._reader = await spawn(tg, self.read_task, evt)
 
-        self._ae = work(self)
-        return self._ae.__aenter__()  # pylint: disable=E1101
-
-    def __aexit__(self, *tb):
-        return self._ae.__aexit__(*tb)  # pylint: disable=E1101
+                await evt.wait()
+                self._worker = await spawn(tg, self._run)
+                self._pinger = await spawn(tg, self._ping)
+                yield self
+            finally:
+                self._tg = None
+                tg.cancel_scope.cancel()
 
     def __aiter__(self):
         return self
@@ -309,24 +319,23 @@ class Actor:
         """
         if self._send_raw:
             await self.post_event(RawMsgEvent(msg))
-        msg = Message(**msg)
+        msg = Message.read(msg)
         if type(msg) is InitMessage and msg.node == self._name:
             if self._self_seen:
                 # We may see our own Hello only once
-                raise ActorCollisionError()
+                raise ActorCollisionError
             self._self_seen = True
 
         await self._rdr_q.put(msg)
 
     async def _run(self):
-        """
-        """
+        """ """
         await self._send_msg(InitMessage(node=self._name))
         await self._send_msg(self._version)
 
         await anyio.sleep((self.random / 2 + 1.5) * self._gap + self._cycle)
         if not self._self_seen:
-            raise ActorTimeoutError()
+            raise ActorTimeoutError
         await self._send_ping()
 
         t_dest = 0
@@ -390,13 +399,9 @@ class Actor:
 
         It is an error to not supersede the old config.
         """
-        self._cfg = {}
-        self._cfg.update(self.DEFAULTS)
-        self._cfg.update(cfg)
-
-        v = SetupMessage(**self._cfg)
+        v = SetupMessage(**cfg)
         if v.version <= self._version.version:
-            raise ValueError("You need a version > %s" % (self._version.version,))
+            raise ValueError(f"You need a version > {self._version.version}")
         self._version = v
         await self._send_msg(v)
 
@@ -407,11 +412,10 @@ class Actor:
         Args:
           length (int): New max length of the history. Default: Leave alone.
         """
-        if length is not None:
-            if self._version.nodes < length:
-                self._version.nodes = length
-                self._version.version += 1
-                await self._send_msg(self._version)
+        if length is not None and self._version.nodes < length:
+            self._version.nodes = length
+            self._version.version += 1
+            await self._send_msg(self._version)
 
         if self._tagged != -1:
             return
@@ -657,7 +661,7 @@ class Actor:
             history = self._prev_history = self._history
             self._history += self._name
             self._get_next_ping_time()
-        msg.history = history[0 : self._splits]  # noqa: E203
+        msg.history = history[0 : self._splits]
         await self._send_msg(msg)
 
     async def _send_msg(self, msg: Message):
@@ -753,10 +757,9 @@ class Actor:
             lv += 1
             if self._nodes > 0 and lv > self._nodes:
                 break
-        if not self._ready:
-            if p > lv // 2:
-                # No, the first active host is too far back.
-                return 2 + self.random / 3
+        if not self._ready and p > lv // 2:
+            # No, the first active host is too far back.
+            return 2 + self.random / 3
 
         return self.ping_delay(
             s - 1,

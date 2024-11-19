@@ -1,18 +1,21 @@
+from __future__ import annotations
+
 try:
-    from contextlib import asynccontextmanager, AsyncExitStack
+    from contextlib import AsyncExitStack, asynccontextmanager
 except ImportError:
-    from async_generator import asynccontextmanager
     from async_exit_stack import AsyncExitStack
-import trio
+    from async_generator import asynccontextmanager
 import anyio
-import mock
-import attr
-import time
-from moat.util import create_queue
-
-from asyncactor.abc import Transport, MonitorStream
-
 import logging
+import time
+from unittest import mock
+
+from asyncactor.abc import MonitorStream, Transport
+
+import attr
+import trio
+
+from moat.util import create_queue
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +88,7 @@ async def stdtest(**kw):  # pylint: disable=W0613
                     logger.info("Runtime: %s", clock.current_time())
                     tg.cancel_scope.cancel()
         logger.info("End")
-        pass  # unwinding ex:AsyncExitStack
+        # unwinding ex:AsyncExitStack
 
 
 class MockTransport(Transport):

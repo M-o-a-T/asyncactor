@@ -1,13 +1,28 @@
-#
-# Abstract classes for the underlying transport
-#
+"""
+Abstract classes for the underlying transport
+"""
+
+from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
 
-from typing import Dict, Union, Tuple, List
+import trio
 
-Packable = Union[
-    str, bytes, type(None), int, float, Dict[str, "Packable"], Tuple["Packable"], List["Packable"]
+from typing import TYPE_CHECKING, Union
+
+if TYPE_CHECKING:
+    from typing import Self
+
+Packable = Union[  # noqa:UP007
+    str,
+    bytes,
+    bool,
+    type(None),
+    int,
+    float,
+    dict[str | int, "Packable"],
+    tuple["Packable"],
+    list["Packable"],
 ]
 
 
@@ -21,12 +36,19 @@ class Transport(metaclass=ABCMeta):
     """
 
     @abstractmethod
-    def monitor(self) -> "MonitorStream":
+    def monitor(self) -> MonitorStream:
         """Return a MonitorStream that async-iterates payloads sent to this channel"""
 
     @abstractmethod
     async def send(self, payload: Packable):
         """send this payload to this channel"""
+
+    async def receiver(self, *, task_status=trio.TASK_STATUS_IGNORED):
+        """
+        A dummy receiver which the transport may override,
+        otherwise it's the client's job
+        """
+        task_status.started()
 
 
 class MonitorStream(metaclass=ABCMeta):
@@ -37,15 +59,7 @@ class MonitorStream(metaclass=ABCMeta):
     def __init__(self, transport: Transport):
         self.transport = transport
 
-    @abstractmethod
-    async def __aenter__(self):
-        return self
-
-    @abstractmethod
-    async def __aexit__(self, *tb):
-        pass
-
-    def __aiter__(self):
+    def __aiter__(self) -> Self:
         return self
 
     @abstractmethod

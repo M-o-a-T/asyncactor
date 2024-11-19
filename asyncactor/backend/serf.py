@@ -1,9 +1,12 @@
 #
 # Listener on top of an AsyncSerf connection
 #
-from asyncactor.abc import Transport, MonitorStream
-from asyncserf import Serf
+from __future__ import annotations
+
+from asyncactor.abc import MonitorStream, Transport
+
 import msgpack
+from asyncserf import Serf
 
 
 class SerfTransport(Transport):
@@ -24,20 +27,15 @@ class SerfTransport(Transport):
 
 
 class SerfMonitor(MonitorStream):
-    _mon1 = None
-    _mon2 = None
+    _mon = None
     _it = None
 
-    async def __aenter__(self):
-        self._mon1 = self.transport.conn.stream("user:" + self.transport.tag)
-        self._mon2 = await self._mon1.__aenter__()
-        return self
-
-    async def __aexit__(self, *tb):
-        return await self._mon1.__aexit__(*tb)
+    async def _ctx(self):
+        async with self.transport.conn.stream("user:" + self.transport.tag) as self._mon:
+            yield self
 
     def __aiter__(self):
-        self._it = self._mon2.__aiter__()
+        self._it = self._mon.__aiter__()
         return self
 
     async def __anext__(self):
