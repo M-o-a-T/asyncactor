@@ -1,0 +1,122 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [ "setuptools", "wheel", "setuptools-scm",]
+
+[project]
+classifiers = [
+	"Intended Audience :: Developers",
+	"Programming Language :: Python :: 3",
+	"Framework :: AsyncIO",
+	"Framework :: Trio",
+	"Framework :: AnyIO",
+	"License :: OSI Approved",
+	"Development Status :: 4 - Beta",
+	]
+dependencies = [
+	"anyio ~= 4.2",
+	"moat-lib-codec",
+	"moat-util ~= 0.53",
+	]
+dynamic = [ "version",]
+keywords = [ "MQTT", "orchestration", "service discovery", "anyio"]
+requires-python = ">=3.9"
+name = "asyncactor"
+description = "Async decentralized actor"
+readme = "README.rst"
+[[project.authors]]
+name = "Matthias Urlichs"
+email = "matthias@urlichs.de"
+
+[project.license]
+file = "LICENSE.txt"
+
+[project.urls]
+homepage = "https://github.com/smurfix/asyncactor"
+repository = "https://github.com/smurfix/asyncactor.git"
+
+[project.optional-dependencies]
+moat_kv = [ "moat-kv",]
+moat_link = [ "moat-link",]
+mqtt = [ "mqttproto",]
+dev = ["pytest >= 2.5.2", "pytest-cov >= 2.3", "trio >= 0.23", "moat-mqtt", "mqttproto",]
+
+[tool.ruff]
+preview = true
+line-length = 99
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["ANN","PTH","PERF", "D105", "D107","A003","S101","RUF001","RUF002","PLW1514", "D2","D3","D4","T2","FBT","TRY003","EM10","PLR","C","RET50","TD","FIX","N","ERA","BLE001","COM812","ISC001","UP038"]
+explicit-preview-rules = true
+
+[tool.ruff.lint.flake8-comprehensions]
+allow-dict-calls-with-keyword-arguments = true
+
+[tool.ruff.lint.flake8-builtins]
+builtins-ignorelist = ["id","help"]
+
+[tool.ruff.lint.isort]
+no-lines-before = ["future"]
+required-imports = ["from __future__ import annotations"]
+section-order = ["future","standard-library","first-party","third-party","moat","local-folder","upy","typing"]
+extra-standard-library = ["pytest", "anyio"]
+force-to-top = ["moat.util"]
+
+[tool.ruff.lint.isort.sections]
+"moat" = ["moat"]
+"upy" = ["micropython", "machine", "esp"]
+"typing" = ["typing"]
+
+[tool.flake8]
+max-line-length = 99
+ignore = [ "F841", "E731", "E502", "E402", "E127", "E123", "W503", "E231", "E203", "F401"]
+
+[tool.isort]
+line_length = 99
+multi_line_output = 3
+profile = "black"
+
+[tool.setuptools]
+packages = [ "asyncactor",]
+[tool.setuptools.package-data]
+"*" = ["*.yaml"]
+
+[tool.pylint.messages_control]
+disable="wrong-import-order,ungrouped-imports,too-many-nested-blocks,unspecified-encoding,missing-module-docstring,no-else-continue,too-many-instance-attributes,too-many-statements,too-many-return-statements,superfluous-parens,too-few-public-methods,use-dict-literal,too-many-locals,no-else-return,too-many-arguments,too-many-branches,invalid-name,fixme,no-else-raise,duplicate-code,unnecessary-pass"
+
+[tool.setuptools_scm]
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+isolated_build = True
+envlist = py310,check
+
+[testenv]
+setenv = 
+    PYTHONPATH = {env:PYTHONPATH}{:}{toxinidir}
+deps = 
+    trio
+    pytest
+commands = 
+    python3 -mpytest tests/
+
+[testenv:check]
+commands = 
+    pylint asyncactor tests
+    flake8p asyncactor tests
+    black --check asyncactor tests
+deps = 
+    pytest
+    pylint
+    black
+    flake8-pyproject
+    flake8
+
+"""
+
+[tool.black]
+line-length = 99
+
+
