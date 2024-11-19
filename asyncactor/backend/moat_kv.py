@@ -22,21 +22,12 @@ class MoatKVTransport(Transport):
 
 
 class MoatKVMonitor(MonitorStream):
-    _mon1 = None
-    _mon2 = None
+    _mon = None
     _it = None
 
-    async def __aenter__(self):
-        self._mon1 = self.transport.conn.monitor(*self.transport.topic)
-        if hasattr(self._mon1, "__aenter__"):
-            self._mon2 = await self._mon1.__aenter__()
-        else:
-            self._mon2 = self._mon1
-        return self
-
-    async def __aexit__(self, *tb):
-        if hasattr(self._mon1, "__aexit__"):
-            return await self._mon1.__aexit__(*tb)
+    async def _ctx(self):
+        async with self.transport.conn.monitor(*self.transport.topic) as self._mon:
+            yield self
 
     def __aiter__(self):
         self._it = self._mon2.__aiter__()

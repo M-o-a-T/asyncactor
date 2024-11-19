@@ -1,8 +1,13 @@
-#
-# Listener on top of an MQTT connection
-#
+"""
+Listener on top of an MQTT connection.
+
+DEPRECATED. Use "mqttproto" instead.
+"""
+
+from __future__ import annotations
+
 from asyncactor.abc import Transport, MonitorStream
-from moat.util import create_queue
+from moat.util import create_queue, CtxObj
 from moat.mqtt.client import MQTTClient
 from moat.mqtt.mqtt.constants import QOS_0
 import msgpack
@@ -14,6 +19,9 @@ class MQTTTransport(Transport):
 
     MQTT does not have channels. Thus you need to call :meth:`deliver`
     on every incoming message that matches the topic.
+    (The actor does subscribe itself.)
+
+    DEPRECATED. Use "mqttproto" instead.
     """
 
     def __init__(self, conn: MQTTClient, *topic):
@@ -22,7 +30,7 @@ class MQTTTransport(Transport):
         self.tag = "/".join(topic)
         self._monitor = None
 
-    def monitor(self):
+    def monitor(self) -> Awaitable[AsyncContextManager[MonitorStream]]:
         """
         Accept incoming messages::
 
@@ -41,7 +49,7 @@ class MQTTTransport(Transport):
 
     def deliver(self, payload):
         """
-        MQTT doesn't have dedicated channels.
+        MQTT didn't have dedicated channels.
 
         Call this to inject all payloads destined for this transport's topic.
         """
@@ -52,23 +60,23 @@ class MQTTTransport(Transport):
         return "<MQTT:%s @%r>" % (self.tag, self.conn)
 
 
-class MQTTMonitor(MonitorStream):
+class MQTTMonitor(MonitorStream, CtxObj):
+    _mon = None
+
     def __init__(self, *a, **k):
         super().__init__(*a, **k)
+
+    async def _ctx(self):
         self._q = create_queue(1)
-
-    async def __aenter__(self):
         c = self.transport
-        if c._monitor is not None:
-            raise RuntimeError("You can't have more than one monitor")
-        c._monitor = self
         await c.conn.subscribe([(c.tag, QOS_0)])
-        return self
-
-    async def __aexit__(self, *tb):
-        c = self.transport
-        c._monitor = None
-        await c.conn.unsubscribe([c.tag])
+        try:
+            c._monitor = self
+            yield self
+        finally:
+            await c.conn.unsubscribe([c.tag])
+            c._monitor = None
+        del self._q
 
     def __aiter__(self):
         return self
