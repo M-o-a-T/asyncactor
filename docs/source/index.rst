@@ -9,15 +9,13 @@ is a network split, and related tasks.
 Key features:
 
 * async; uses `AnyIO <https://github.com/agronholm/anyio/>`,
-  thus is compatible with ``asyncio``, ``trio`` and ``curio``.
+  thus is compatible with ``asyncio`` and ``trio``.
 
 * timeslot-based, ~1 message per slot
 
 * Back-ends for Serf and MQTT included, others are easy to code
 
 Inherited from `Trio <https://github.com/python-trio/trio>`_:
-
-* Real-time chat: https://gitter.im/python-trio/general
 
 * Contributor guide: https://trio.readthedocs.io/en/latest/contributing.html
 
