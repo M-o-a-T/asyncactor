@@ -1,9 +1,12 @@
 #
 # Listener on top of an AsyncSerf connection
 #
-from asyncactor.abc import Transport, MonitorStream
-from asyncserf import Serf
+from __future__ import annotations
+
+from asyncactor.abc import MonitorStream, Transport
+
 import msgpack
+from asyncserf import Serf
 
 
 class SerfTransport(Transport):

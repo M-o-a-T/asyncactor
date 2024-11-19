@@ -4,16 +4,20 @@ Listener on top of an async mqttproto connection
 
 from __future__ import annotations
 
-from asyncactor.abc import Transport, MonitorStream
-from moat.util import create_queue, Path, CtxObj
+from asyncactor.abc import MonitorStream, Transport
+
 from mqttproto import QoS
-from moat.link.client import Link
-from moat.link.backend import get_codec
+
+from moat.util import CtxObj, Path
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator, Awaitable
+
     from moat.lib.codec import Codec
+    from moat.link.client import Link
+
     from typing import Self
 
 
@@ -44,10 +48,12 @@ class MQTTPTransport(Transport):
         return self.conn.send(self.topic, payload, qos=QoS.AT_LEAST_ONCE, codec=self.codec)
 
     def __repr__(self):
-        return "<MQTT:%s @%r>" % (self.tag, self.conn)
+        return f"<MQTT:[self.tag] @{self.conn!r}>"
 
 
 class MQTTMonitor(MonitorStream, CtxObj):
+    "Monitor"
+
     async def _ctx(self) -> AsyncIterator[Self]:
         c = self.transport
         async with c.conn.monitor(c.tag, maximum_qos=QoS.AT_LEAST_ONCE, codec=self.codec) as mon:
@@ -65,7 +71,7 @@ class MQTTMonitor(MonitorStream, CtxObj):
         return msg
 
     def __repr__(self):
-        return "<Mon:%r>" % (self.transport,)
+        return f"<Mon:{self.transport}>"
 
 
 Transport = MQTTPTransport

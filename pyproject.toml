@@ -44,6 +44,7 @@ dev = ["pytest >= 2.5.2", "pytest-cov >= 2.3", "trio >= 0.23", "moat-mqtt", "mqt
 preview = true
 line-length = 99
 target-version = "py310"
+extend-exclude = ["tests", "docs", "asyncactor/backend/serf.py", "asyncactor/backend/mqtt.py",]
 
 [tool.ruff.lint]
 select = ["ALL"]

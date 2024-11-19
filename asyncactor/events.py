@@ -1,4 +1,20 @@
-# Events for actors to send
+"""
+Events for actors to send
+"""
+
+from __future__ import annotations
+
+from contextlib import suppress
+
+from attrs import define
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .messages import Message
+    from .nodelist import NodeList
+
+    from typing import Any, ClassVar
 
 __all__ = [
     "NodeEvent",
@@ -15,7 +31,7 @@ __all__ = [
 
 
 class NodeEvent:
-    pass
+    "Generic event"
 
 
 class AuthPingEvent(NodeEvent):
@@ -26,10 +42,9 @@ class AuthPingEvent(NodeEvent):
     (TODO: enforce this)
     """
 
-    pass
 
-
-class TagEvent(AuthPingEvent):
+@define
+class TagEvent[TNode](AuthPingEvent):
     """
     This event says that for the moment, you're "it".
 
@@ -38,24 +53,23 @@ class TagEvent(AuthPingEvent):
       value (any): the value attached to me.
     """
 
-    def __init__(self, node, value):
-        self.node = node
-        self.value = value
+    __qualname__: ClassVar[str] = "Tag"
 
-    def __repr__(self):
-        return "<Tag %s %r>" % (self.node, self.value)
+    node: TNode
+    value: Any
 
 
+@define
 class UntagEvent(NodeEvent):
     """
     Your tag cycle time has passed. You're no longer "it".
     """
 
-    def __repr__(self):
-        return "<UnTag>"
+    __qualname__: ClassVar[str] = "UnTag"
 
 
-class DetagEvent(UntagEvent):
+@define
+class DetagEvent[TNode](UntagEvent):
     """
     A ping from another node has arrived while you're "it".
     Unfortunately, it is "better" than ours.
@@ -64,13 +78,12 @@ class DetagEvent(UntagEvent):
       node (str): The node that superseded us.
     """
 
-    def __init__(self, node):
-        self.node = node
+    __qualname__: ClassVar[str] = "DeTag"
 
-    def __repr__(self):
-        return "<DeTag %s>" % (self.node,)
+    node: TNode
 
 
+@define
 class RawMsgEvent(NodeEvent):
     """
     A message shows up. Not filtered. You must set "send_raw" when you
@@ -80,13 +93,12 @@ class RawMsgEvent(NodeEvent):
       msg (dict): The raw data
     """
 
-    def __init__(self, msg):
-        self.msg = msg
+    __qualname__: ClassVar[str] = "RawMsg"
 
-    def __repr__(self):
-        return "<RawMsg %r>" % (self.msg,)
+    msg: Message
 
 
+@define
 class PingEvent(AuthPingEvent):
     """
     A ping from another node shows up: the node ``.node`` is "it".
@@ -95,16 +107,14 @@ class PingEvent(AuthPingEvent):
       msg (Message): The ping message sent by the currently-active actor.
     """
 
-    def __init__(self, msg):
-        self.msg = msg
+    __qualname__: ClassVar[str] = "Ping"
 
-    def __repr__(self):
-        return "<Ping %r>" % (self.msg,)
+    msg: Message
 
     @property
     def node(self):
         """
-        Name of the node. Shortcut to ``msg['node']``.
+        Name of the node. Shortcut to ``node.msg.node``.
         """
         try:
             return self.msg.node
@@ -114,7 +124,7 @@ class PingEvent(AuthPingEvent):
     @property
     def value(self):
         """
-        Name of the node. Shortcut to ``msg['node']``.
+        Value of the node. Shortcut to ``node.msg.value``.
         """
         try:
             return self.msg.value
@@ -122,6 +132,7 @@ class PingEvent(AuthPingEvent):
             return None
 
 
+@define
 class GoodNodeEvent(NodeEvent):
     """
     A known-good node has been seen. We might want to get data from it.
@@ -132,13 +143,12 @@ class GoodNodeEvent(NodeEvent):
     This event is seen while starting up, when our value is ``None``.
     """
 
-    def __init__(self, nodes):
-        self.nodes = nodes
+    __qualname__: ClassVar[str] = "Good"
 
-    def __repr__(self):
-        return "<Good %s>" % (self.nodes,)
+    nodes: NodeList
 
 
+@define
 class RecoverEvent(NodeEvent):
     """
     We need to recover from a network split.
@@ -150,34 +160,34 @@ class RecoverEvent(NodeEvent):
       remote_nodes: A list of recent actors on the other side.
     """
 
-    def __init__(self, prio, replace, local_nodes, remote_nodes):
-        self.prio = prio
-        self.replace = replace
-        self.local_nodes = local_nodes
-        self.remote_nodes = remote_nodes
+    __qualname__: ClassVar[str] = "Recover"
 
-    def __repr__(self):
-        return "<Recover %d %s %r %r>" % (
-            self.prio,
-            self.replace,
-            self.local_nodes,
-            self.remote_nodes,
-        )
+    prio: int
+    replace: bool
+    local_nodes: NodeList
+    remote_nodes: NodeList
 
 
+@define
 class SetupEvent(NodeEvent):
     """
     Parameters have been updated, most likely by the network.
     """
 
-    version = None
+    __qualname__: ClassVar[str] = "Setup"
+
+    version: int = 0
+
+    cycle: float = 10
+    gap: float = 1.5
+    nodes: int = 5
+    splits: int = 4
+    n_hosts: int = 10
+    force_in: bool = False
 
     def __init__(self, msg):
+        if msg and "version" not in msg:
+            self.version = 1
         for k in "version cycle gap nodes splits n_hosts".split():
-            try:
-                setattr(self, k, getattr(msg, k))
-            except AttributeError:
-                pass
-
-    def __repr__(self):
-        return "<Setup v:%s>" % (self.version,)
+            with suppress(KeyError):
+                setattr(self, k, msg[k])

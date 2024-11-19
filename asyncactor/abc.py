@@ -5,11 +5,15 @@ Abstract classes for the underlying transport
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
+
 import trio
 
-from typing import Union
+from typing import TYPE_CHECKING, Union
 
-Packable = Union[
+if TYPE_CHECKING:
+    from typing import Self
+
+Packable = Union[  # noqa:UP007
     str,
     bytes,
     bool,
@@ -32,7 +36,7 @@ class Transport(metaclass=ABCMeta):
     """
 
     @abstractmethod
-    def monitor(self) -> "MonitorStream":
+    def monitor(self) -> MonitorStream:
         """Return a MonitorStream that async-iterates payloads sent to this channel"""
 
     @abstractmethod

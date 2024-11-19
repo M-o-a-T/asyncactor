@@ -1,19 +1,21 @@
-import pytest
-import trio
+from __future__ import annotations
+
+import logging
 import os
+import pytest
 import time
 
 from asyncactor.actor import (
     Actor,
     GoodNodeEvent,
+    PingEvent,
     TagEvent,
     UntagEvent,
-    PingEvent,
 )
 from asyncactor.backend import get_transport
-from mqttproto.async_client import AsyncMQTTClient
 
-import logging
+import trio
+from mqttproto.async_client import AsyncMQTTClient
 
 logging.basicConfig(level=logging.INFO)
 
@@ -125,4 +127,4 @@ async def test_21_some():
             await tg.start(s1, i)
 
         await trio.sleep(10)
-    pass  # server end
+    # server end

@@ -6,11 +6,13 @@ DEPRECATED. Use "mqttproto" instead.
 
 from __future__ import annotations
 
-from asyncactor.abc import Transport, MonitorStream
-from moat.util import create_queue, CtxObj
+from asyncactor.abc import MonitorStream, Transport
+
+import msgpack
+
+from moat.util import CtxObj, create_queue
 from moat.mqtt.client import MQTTClient
 from moat.mqtt.mqtt.constants import QOS_0
-import msgpack
 
 
 class MQTTTransport(Transport):

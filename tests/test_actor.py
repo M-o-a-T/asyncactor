@@ -1,19 +1,22 @@
+from __future__ import annotations
+
+import logging
 import pytest
-import trio
 import time
 
-from .mock_serf import stdtest
 from asyncactor.actor import (
     Actor,
     GoodNodeEvent,
-    TagEvent,
-    UntagEvent,
-    RecoverEvent,
     PingEvent,
     RawMsgEvent,
+    RecoverEvent,
+    TagEvent,
+    UntagEvent,
 )
 
-import logging
+import trio
+
+from .mock_serf import stdtest
 
 logging.basicConfig(level=logging.INFO)
 
@@ -107,7 +110,7 @@ async def test_11_some(autojump_clock):  # pylint: disable=unused-argument
                 await tg.start(s1, i)
 
             await trio.sleep(100)
-        pass  # server end
+        # server end
 
 
 @pytest.mark.trio
@@ -150,4 +153,4 @@ async def test_12_split1(autojump_clock, tocky):  # pylint: disable=unused-argum
             print(n_ping, n_recover)
 
             tg.cancel_scope.cancel()
-            pass  # server end
+            # server end
