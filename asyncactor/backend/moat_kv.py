@@ -49,7 +49,7 @@ class MoatKVMonitor(MonitorStream, CtxObj):
             yield self
 
     def __aiter__(self):
-        self._it = self._mon2.__aiter__()
+        self._it = self._mon.__aiter__()
         return self
 
     async def __anext__(self):
