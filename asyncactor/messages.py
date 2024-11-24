@@ -160,7 +160,7 @@ class HistoryMessage[TNode](Message):
     Your regular actor announcement.
     """
 
-    value = None
+    value:Any = None
     history: NodeList[TNode] = ()
 
     _type: ClassVar[str] = "hist"
