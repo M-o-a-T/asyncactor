@@ -48,7 +48,7 @@ class MQTTPTransport(Transport):
         return self.conn.send(self.topic, payload, qos=QoS.AT_LEAST_ONCE, codec=self.codec)
 
     def __repr__(self):
-        return f"<MQTT:[self.tag] @{self.conn!r}>"
+        return f"<MQTT:{self.topic} @{self.conn!r}>"
 
 
 class MQTTMonitor(MonitorStream, CtxObj):
@@ -56,7 +56,7 @@ class MQTTMonitor(MonitorStream, CtxObj):
 
     async def _ctx(self) -> AsyncIterator[Self]:
         c = self.transport
-        async with c.conn.monitor(c.tag, maximum_qos=QoS.AT_LEAST_ONCE, codec=self.codec) as mon:
+        async with c.conn.monitor(c.topic, qos=QoS.AT_LEAST_ONCE, codec=c.codec) as mon:
             self._it = aiter(mon)
             try:
                 yield self
