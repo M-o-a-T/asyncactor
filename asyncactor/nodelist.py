@@ -9,7 +9,7 @@ __all__ = [
 ]
 
 
-class NodeList[TName](list):
+class NodeList(list):  # [TName]
     """
     This is an augmented :class: `list`, used to store unique node names,
     up to some maximum (if used).
