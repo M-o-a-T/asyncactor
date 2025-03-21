@@ -44,7 +44,7 @@ class AuthPingEvent(NodeEvent):
 
 
 @define
-class TagEvent[TNode](AuthPingEvent):
+class TagEvent(AuthPingEvent):  # [TNode]
     """
     This event says that for the moment, you're "it".
 
@@ -69,7 +69,7 @@ class UntagEvent(NodeEvent):
 
 
 @define
-class DetagEvent[TNode](UntagEvent):
+class DetagEvent(UntagEvent):  # [TNode]
     """
     A ping from another node has arrived while you're "it".
     Unfortunately, it is "better" than ours.
