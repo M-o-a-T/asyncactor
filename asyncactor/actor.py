@@ -317,7 +317,12 @@ class Actor(CtxObj):
         if type(msg) is InitMessage and msg.node == self._name:
             if self._self_seen:
                 # We may see our own Hello only once
-                raise ActorCollisionError
+                # raise ActorCollisionError
+
+                # Actually this is not true if there are overlapping
+                # subscriptions and no subscription IDs.
+                # Thus (for the moment) simply ignore the message.
+                return
             self._self_seen = True
 
         await self._rdr_q.put(msg)

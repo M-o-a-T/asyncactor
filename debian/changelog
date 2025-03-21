@@ -1,3 +1,9 @@
+asyncactor (0.25.5.1) unstable; urgency=medium
+
+  * Merge
+
+ -- Matthias Urlichs <matthias@urlichs.de>  Fri, 21 Mar 2025 16:20:40 +0100
+
 asyncactor (0.25.3.1) unstable; urgency=medium
 
   * Merge

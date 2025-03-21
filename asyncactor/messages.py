@@ -74,7 +74,7 @@ class Message:
 
 
 @define
-class _NodeMessage[TNode](Message):
+class _NodeMessage(Message):  # [TNode]
     node: TNode = None
 
     def __attrs_post_init__(self):
@@ -138,7 +138,7 @@ class InitMessage(_NodeMessage):
 
 @_reg
 @define
-class PingMessage[TNode](_NodeMessage):
+class PingMessage(_NodeMessage):  # [TNode]
     """
     Your regular actor announcement.
     """
@@ -155,7 +155,7 @@ class PingMessage[TNode](_NodeMessage):
 
 @_reg
 @define
-class HistoryMessage[TNode](Message):
+class HistoryMessage(Message):  # [TNode]
     """
     Your regular actor announcement.
     """
