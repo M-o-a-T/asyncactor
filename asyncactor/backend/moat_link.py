@@ -8,7 +8,7 @@ from asyncactor.abc import MonitorStream, Transport
 
 from mqttproto import QoS
 
-from moat.util import CtxObj, Path
+from moat.util import CtxObj, Path, NotGiven
 
 from typing import TYPE_CHECKING
 
@@ -26,7 +26,7 @@ class MQTTPTransport(Transport):
     MQTTProto Transport for AsyncActor.
     """
 
-    def __init__(self, conn: Link, topic: Path, codec: Codec | str = None):
+    def __init__(self, conn: Link, topic: Path, codec: Codec | str = NotGiven):
         self.conn = conn
         self.topic = topic
         self.codec = codec
