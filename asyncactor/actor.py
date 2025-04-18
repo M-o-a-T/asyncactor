@@ -127,7 +127,7 @@ class Actor(CtxObj):
         self._version = SetupMessage(node=self._name, **(cfg or {}))
         self._version_job = None
         self._off_nodes = self._version.nodes
-        self._self_seen = False
+        self._self_seen = anyio.Event()
 
         self._evt_q = create_queue(1)
         self._rdr_q = create_queue(99)
@@ -315,15 +315,14 @@ class Actor(CtxObj):
             await self.post_event(RawMsgEvent(msg))
         msg = Message.read(msg)
         if type(msg) is InitMessage and msg.node == self._name:
-            if self._self_seen:
-                # We may see our own Hello only once
-                # raise ActorCollisionError
+            if self._self_seen.is_set():
+                # We may see our own Init only once.
+                raise ActorCollisionError
 
-                # Actually this is not true if there are overlapping
-                # subscriptions and no subscription IDs.
-                # Thus (for the moment) simply ignore the message.
-                return
-            self._self_seen = True
+                # This may not hold if your bronze-age MQTT server doesn't
+                # do subscription IDs. Sorry, but that's not supported.
+
+            self._self_seen.set()
 
         await self._rdr_q.put(msg)
 
@@ -332,9 +331,8 @@ class Actor(CtxObj):
         await self._send_msg(InitMessage(node=self._name))
         await self._send_msg(self._version)
 
-        await anyio.sleep((self.random / 2 + 1.5) * self._gap + self._cycle)
-        if not self._self_seen:
-            raise ActorTimeoutError
+        with anyio.fail_after((self.random / 2 + 1.5) * self._gap + self._cycle):
+            await self._self_seen.wait()
         await self._send_ping()
 
         t_dest = 0
@@ -716,7 +714,7 @@ class Actor(CtxObj):
         """
         # For pos=0 this is a no-op and times out immediately
         try:
-            async with anyio.open_cancel_scope() as xx:
+            async with anyio.CancelScope() as xx:
                 if self._version_job is not None:
                     self._version_job.cancel()
                 self._version_job = xx
