@@ -186,8 +186,7 @@ class SetupEvent(NodeEvent):
     force_in: bool = False
 
     def __init__(self, msg):
-        if msg and "version" not in msg:
-            self.version = 1
+        self.__attrs_init__()
         for k in "version cycle gap nodes splits n_hosts".split():
-            with suppress(KeyError):
-                setattr(self, k, msg[k])
+            with suppress(AttributeError):
+                setattr(self, k, getattr(msg,k))
