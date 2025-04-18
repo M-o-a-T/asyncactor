@@ -716,7 +716,7 @@ class Actor(CtxObj):
         """
         # For pos=0 this is a no-op and times out immediately
         try:
-            async with anyio.open_cancel_scope() as xx:
+            async with anyio.CancelScope() as xx:
                 if self._version_job is not None:
                     self._version_job.cancel()
                 self._version_job = xx
