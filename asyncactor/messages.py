@@ -113,10 +113,10 @@ class SetupMessage(_NodeMessage):
 
     def _verify(self):
         "check parameters"
-        if self.cycle < 1:
-            raise ValueError("cycle must be >= 1")
-        if self.gap < 0.0:
-            raise ValueError("gap must be >= 0.1")
+        if self.cycle < .1:
+            raise ValueError("cycle must be >= .1")
+        if self.gap < 0.01:
+            raise ValueError("gap must be >= 0.01")
         if self.cycle < self.gap * 3:
             raise ValueError("cycle must be >= 3*gap")
 
