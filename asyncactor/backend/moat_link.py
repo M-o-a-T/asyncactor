@@ -56,7 +56,7 @@ class MQTTMonitor(MonitorStream, CtxObj):
 
     async def _ctx(self) -> AsyncIterator[Self]:
         c = self.transport
-        async with c.conn.monitor(c.tag, maximum_qos=QoS.AT_LEAST_ONCE, codec=self.codec) as mon:
+        async with c.conn.monitor(c.topic, qos=QoS.AT_LEAST_ONCE) as mon:
             self._it = aiter(mon)
             try:
                 yield self
