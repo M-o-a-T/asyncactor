@@ -15,8 +15,6 @@ if TYPE_CHECKING:
 
     from typing import Self
 
-import msgpack
-
 
 class MoatKVTransport(Transport):
     "Transport"
@@ -31,7 +29,6 @@ class MoatKVTransport(Transport):
 
     async def send(self, payload):
         "send message"
-        payload = msgpack.packb(payload, use_bin_type=True)
         await self.conn.send(*self.topic, payload=payload)
 
     def __repr__(self):
@@ -54,7 +51,6 @@ class MoatKVMonitor(MonitorStream, CtxObj):
 
     async def __anext__(self):
         msg = await self._it.__anext__()
-        msg = msgpack.unpackb(msg.payload, raw=False, use_list=False)
         return msg
 
     def __repr__(self):
