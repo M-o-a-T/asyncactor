@@ -8,7 +8,7 @@ from asyncactor.abc import MonitorStream, Transport
 
 from mqttproto import QoS
 
-from moat.util import CtxObj, Path
+from moat.util import CtxObj, Path, NotGiven
 
 from typing import TYPE_CHECKING
 
@@ -26,7 +26,7 @@ class MQTTProtoTransport(Transport):
     MQTTProto Transport for AsyncActor.
     """
 
-    def __init__(self, conn: Link, topic: Path, codec: Codec | str = None):
+    def __init__(self, conn: Link, topic: Path, codec: Codec | str = NotGiven):
         self.conn = conn
         self.topic = topic
         self.codec = codec
@@ -48,7 +48,7 @@ class MQTTProtoTransport(Transport):
         return self.conn.send(self.topic, payload, qos=QoS.AT_LEAST_ONCE, codec=self.codec)
 
     def __repr__(self):
-        return f"<MQTT:[self.tag] @{self.conn!r}>"
+        return f"<MQTT:{self.topic} @{self.conn!r}>"
 
 
 class MQTTMonitor(MonitorStream, CtxObj):
@@ -56,7 +56,7 @@ class MQTTMonitor(MonitorStream, CtxObj):
 
     async def _ctx(self) -> AsyncIterator[Self]:
         c = self.transport
-        async with c.conn.monitor(c.topic, qos=QoS.AT_LEAST_ONCE) as mon:
+        async with c.conn.monitor(c.topic, qos=QoS.AT_LEAST_ONCE, codec=c.codec) as mon:
             self._it = aiter(mon)
             try:
                 yield self

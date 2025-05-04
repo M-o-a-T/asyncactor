@@ -44,7 +44,7 @@ class AuthPingEvent(NodeEvent):
 
 
 @define
-class TagEvent[TNode](AuthPingEvent):
+class TagEvent(AuthPingEvent):  # [TNode]
     """
     This event says that for the moment, you're "it".
 
@@ -69,7 +69,7 @@ class UntagEvent(NodeEvent):
 
 
 @define
-class DetagEvent[TNode](UntagEvent):
+class DetagEvent(UntagEvent):  # [TNode]
     """
     A ping from another node has arrived while you're "it".
     Unfortunately, it is "better" than ours.
@@ -186,8 +186,7 @@ class SetupEvent(NodeEvent):
     force_in: bool = False
 
     def __init__(self, msg):
-        if msg and "version" not in msg:
-            self.version = 1
+        self.__attrs_init__()
         for k in "version cycle gap nodes splits n_hosts".split():
-            with suppress(KeyError):
-                setattr(self, k, msg[k])
+            with suppress(AttributeError):
+                setattr(self, k, getattr(msg,k))

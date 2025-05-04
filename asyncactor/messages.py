@@ -74,7 +74,7 @@ class Message:
 
 
 @define
-class _NodeMessage[TNode](Message):
+class _NodeMessage(Message):  # [TNode]
     node: TNode = None
 
     def __attrs_post_init__(self):
@@ -113,10 +113,10 @@ class SetupMessage(_NodeMessage):
 
     def _verify(self):
         "check parameters"
-        if self.cycle < 1:
-            raise ValueError("cycle must be >= 1")
-        if self.gap < 0.0:
-            raise ValueError("gap must be >= 0.1")
+        if self.cycle < .1:
+            raise ValueError("cycle must be >= .1")
+        if self.gap < 0.01:
+            raise ValueError("gap must be >= 0.01")
         if self.cycle < self.gap * 3:
             raise ValueError("cycle must be >= 3*gap")
 
@@ -138,7 +138,7 @@ class InitMessage(_NodeMessage):
 
 @_reg
 @define
-class PingMessage[TNode](_NodeMessage):
+class PingMessage(_NodeMessage):  # [TNode]
     """
     Your regular actor announcement.
     """
@@ -155,7 +155,7 @@ class PingMessage[TNode](_NodeMessage):
 
 @_reg
 @define
-class HistoryMessage[TNode](Message):
+class HistoryMessage(Message):  # [TNode]
     """
     Your regular actor announcement.
     """

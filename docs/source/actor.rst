@@ -19,8 +19,8 @@ AsyncActor is based on timeslots. At the start of each slot, one
 participant is selected as the leader (or, like we said when we were
 children: *you're "it"*).
 
-Some time after the end of the slot, a participating actor broadcasts a
-``ping`` message. The first actor that does this starts the next slot.
+Some time after the end of the slot, another participating actor broadcasts
+a ``ping`` message. The first actor that does this starts the next slot.
 Collisions are avoided by appropriately modelling the "some time after"
 part; if that fails and messages cross each other, collisions are resolved
 deterministically.
@@ -38,7 +38,7 @@ value.
 The resolution method may be changed, if necessary, by overriding
 :meth:`Actor.has_priority`. Note that this method **must** be deterministic,
 i.e. every recipient of a set of messages must select the same node as
-the new leader.
+the new leader, irrespective of the order these messages arrive in.
 
 Depending on the parameters, the default implementation randomly selects a
 number of participating actors and round-robins the "it" role between them.
@@ -58,6 +58,20 @@ An actor can be disabled; while it is, it will still generate
 participate in the protocol. You can use this to selectively enable or
 disable actors if you want e.g. to only let the highest-priority actors
 be *it*.
+
+Message Transport
++++++++++++++++++
+
+AsyncActor messages can be transported by any method that doesn't lose
+messages (except in case of a network split). MQTT with CBOR or MsgPack
+encoding are good examples.
+
+Messages *must not* be duplicated by the transport. In practice this means
+that your MQTT server and library either must support subscription IDs, or
+you need to be very careful not to create overlapping subscriptions. We
+strongly recommend the former strategy because subscription IDs also avoid
+redundant topic comparisons by the client.
+
 
 API
 ===
