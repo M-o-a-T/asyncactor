@@ -51,7 +51,7 @@ class MoatKVMonitor(MonitorStream, CtxObj):
 
     async def __anext__(self):
         msg = await self._it.__anext__()
-        return msg
+        return msg.payload
 
     def __repr__(self):
         return f"<Mon:{self.transport}>"

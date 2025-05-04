@@ -312,8 +312,8 @@ class Actor(CtxObj):
         with each incoming message.
         """
         if self._send_raw:
-            await self.post_event(RawMsgEvent(msg.payload))
-        msg = Message.read(msg.payload)
+            await self.post_event(RawMsgEvent(msg))
+        msg = Message.read(msg)
         if type(msg) is InitMessage and msg.node == self._name:
             if self._self_seen.is_set():
                 # We may see our own Init only once.
