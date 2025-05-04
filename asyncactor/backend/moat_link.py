@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from typing import Self
 
 
-class MQTTPTransport(Transport):
+class MQTTProtoTransport(Transport):
     """
     MQTTProto Transport for AsyncActor.
     """
@@ -74,4 +74,4 @@ class MQTTMonitor(MonitorStream, CtxObj):
         return f"<Mon:{self.transport}>"
 
 
-Transport = MQTTPTransport
+Transport = MQTTProtoTransport
